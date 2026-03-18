@@ -50,13 +50,12 @@ func skipWhitespace(input string, pos int) int {
 	for pos < len(input) && (input[pos] == ' ' || input[pos] == '\t') {
 		pos++
 	}
-
 	return pos
 }
 
-func readWord(input string, pos int) (string, int) { // Read word started from letter, can contain letters and digits (R1, R2, etc.)
+func readWord(input string, pos int) (string, int) { // Read word started from letter, can contain letters, digits and dots (R1, R2, etc.)
 	start := pos
-	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos)) {
+	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos) || input[pos] == '.') {
 		pos++
 	}
 	return input[start:pos], pos

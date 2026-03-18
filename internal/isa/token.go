@@ -14,17 +14,18 @@ func (token Token) String() string {
 }
 
 const (
-	TK_LD           = 0x00
-	TK_ST           = 0x01
-	TK_LD_DOT_BYTE  = 0x02
-	TK_LD_DOT_WORD  = 0x03
-	TK_LD_DOT_DWORD = 0x04
-	TK_REG          = 0x05
-	TK_REG_SP       = 0x06
-	TK_REG_LR       = 0x07
-	TK_COMMA        = 0x08
-	TK_ALU          = 0x09
-	TK_NUMBER       = 0x0A
+	TK_LD = iota
+	TK_ST
+	TK_LD_DOT_BYTE
+	TK_LD_DOT_WORD
+	TK_LD_DOT_DWORD
+	TK_REG
+	TK_REG_SP
+	TK_REG_LR
+	TK_COMMA
+	TK_ALU
+	TK_NUMBER
+	TK_END_LINE
 )
 
 var tokenTypeToString = map[uint8]string{
@@ -39,6 +40,7 @@ var tokenTypeToString = map[uint8]string{
 	TK_COMMA:        "TK_COMMA",
 	TK_ALU:          "TK_ALU",
 	TK_NUMBER:       "TK_NUMBER",
+	TK_END_LINE:     "TK_END_LINE",
 }
 
 func GetTokenTypeString(tokenType uint8) string {

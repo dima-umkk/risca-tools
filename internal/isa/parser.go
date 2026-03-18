@@ -4,13 +4,13 @@ import (
 	"fmt"
 )
 
-func ParseLine(line string) (Instruction, error) {
+func ParseLine(line string) (Instruction, bool, error) {
 	tokens, err := Tokenize(line)
-	if err != nil {
-		return Instruction{}, err
+	if err != nil { //Error parsing tokens
+		return Instruction{}, false, err
 	}
-	if len(tokens) == 0 {
-		return Instruction{}, fmt.Errorf("Token expected")
+	if len(tokens) == 0 { //Skip line
+		return Instruction{}, true, nil
 	}
 
 	var expectedToken uint8
@@ -27,13 +27,17 @@ func ParseLine(line string) (Instruction, error) {
 		}
 	}
 	if !matched {
-		return Instruction{}, fmt.Errorf("Syntax error: expected %s, got %s", GetTokenTypeString(expectedToken), GetTokenTypeString(errorToken))
+		return Instruction{}, false, fmt.Errorf("Syntax error: expected %s, got %s", GetTokenTypeString(expectedToken), GetTokenTypeString(errorToken))
 	}
-	return parseInstruction(matchedRule, tokens)
+	instr, err := parseInstruction(matchedRule, tokens)
+	return instr, false, err
 }
 
 func ruleMatchesTokens(rule Rule, tokens []Token) (bool, uint8, uint8) {
 	for i, tokenType := range rule.Syntax {
+		if i >= len(tokens) {
+			return false, tokenType, TK_END_LINE
+		}
 		if tokens[i].Type != tokenType {
 			return false, tokenType, tokens[i].Type
 		}
