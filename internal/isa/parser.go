@@ -18,7 +18,7 @@ func ParseLine(line string) (Instruction, bool, error) {
 	var matched bool
 	var matchedRule Rule
 	for _, rule := range syntaxRules {
-		if tokens[0].Type == rule.Syntax[0] {
+		if tokens[0].T == rule.Syntax[0] {
 			matched, expectedToken, errorToken = ruleMatchesTokens(rule, tokens)
 			if matched {
 				matchedRule = rule
@@ -38,8 +38,8 @@ func ruleMatchesTokens(rule Rule, tokens []Token) (bool, uint8, uint8) {
 		if i >= len(tokens) {
 			return false, tokenType, TK_END_LINE
 		}
-		if tokens[i].Type != tokenType {
-			return false, tokenType, tokens[i].Type
+		if tokens[i].T != tokenType {
+			return false, tokenType, tokens[i].T
 		}
 	}
 	return true, 0, 0
@@ -89,25 +89,25 @@ func makeAluRegRegInstruction(rule Rule, tokens []Token) (Instruction, error) {
 	var func5 uint8
 	switch rule.Type {
 	case RuleALURegReg:
-		rd, bankd, rs, banks, err = parseRegisters(tokens[1].TokenString, tokens[3].TokenString)
+		rd, bankd, rs, banks, err = parseRegisters(tokens[1].Tk, tokens[3].Tk)
 		if err != nil {
 			return Instruction{}, err
 		}
-		func5, err = getFunc5FromALU(tokens[0].TokenString)
+		func5, err = getFunc5FromALU(tokens[0].Tk)
 	case RuleLDRegReg:
-		rd, bankd, rs, banks, err = parseRegisters(tokens[1].TokenString, tokens[3].TokenString)
+		rd, bankd, rs, banks, err = parseRegisters(tokens[1].Tk, tokens[3].Tk)
 		func5 = 0
 	case RuleLDRegSP:
-		rd, bankd, err = parseRegister(tokens[1].TokenString)
+		rd, bankd, err = parseRegister(tokens[1].Tk)
 		func5 = 10
 	case RuleLDRegLR:
-		rd, bankd, err = parseRegister(tokens[1].TokenString)
+		rd, bankd, err = parseRegister(tokens[1].Tk)
 		func5 = 11
 	case RuleLDSPReg:
-		rs, banks, err = parseRegister(tokens[3].TokenString)
+		rs, banks, err = parseRegister(tokens[3].Tk)
 		func5 = 12
 	case RuleLDLRReg:
-		rs, banks, err = parseRegister(tokens[3].TokenString)
+		rs, banks, err = parseRegister(tokens[3].Tk)
 		func5 = 13
 	}
 	if err != nil {

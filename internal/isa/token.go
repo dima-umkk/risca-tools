@@ -3,44 +3,62 @@ package isa
 import "fmt"
 
 type Token struct {
-	Type        uint8
-	TokenString string
-	ValueInt    uint
-	ValueStr    string
+	T      uint8
+	Tk     string
+	ValInt int
+	ValStr string
 }
 
 func (token Token) String() string {
-	return fmt.Sprintf("%s(%s)", GetTokenTypeString(token.Type), token.TokenString)
+	if token.ValInt != 0 {
+		return fmt.Sprintf("%s('%s':%d)", GetTokenTypeString(token.T), token.Tk, token.ValInt)
+	} else {
+		return fmt.Sprintf("%s('%s')", GetTokenTypeString(token.T), token.Tk)
+	}
 }
 
 const (
 	TK_LD = iota
 	TK_ST
-	TK_LD_DOT_BYTE
-	TK_LD_DOT_WORD
-	TK_LD_DOT_DWORD
+	TK_LD_BYTE
+	TK_LD_WORD
+	TK_LD_DWORD
 	TK_REG
 	TK_REG_SP
 	TK_REG_LR
 	TK_COMMA
 	TK_ALU
 	TK_NUMBER
+	TK_PLUS
+	TK_MINUS
+	TK_L_SQBR
+	TK_R_SQBR
+	TK_PUSH
+	TK_POP
+	TK_LABEL
 	TK_END_LINE
 )
 
 var tokenTypeToString = map[uint8]string{
-	TK_LD:           "TK_LD",
-	TK_ST:           "TK_ST",
-	TK_LD_DOT_BYTE:  "TK_DOT_BYTE",
-	TK_LD_DOT_WORD:  "TK_DOT_WORD",
-	TK_LD_DOT_DWORD: "TK_DOT_DWORD",
-	TK_REG:          "TK_REG",
-	TK_REG_SP:       "TK_REG_SP",
-	TK_REG_LR:       "TK_REG_LR",
-	TK_COMMA:        "TK_COMMA",
-	TK_ALU:          "TK_ALU",
-	TK_NUMBER:       "TK_NUMBER",
-	TK_END_LINE:     "TK_END_LINE",
+	TK_LD:       "TK_LD",
+	TK_ST:       "TK_ST",
+	TK_LD_BYTE:  "TK_LD_BYTE",
+	TK_LD_WORD:  "TK_LD_WORD",
+	TK_LD_DWORD: "TK_LD_DWORD",
+	TK_REG:      "TK_REG",
+	TK_REG_SP:   "TK_REG_SP",
+	TK_REG_LR:   "TK_REG_LR",
+	TK_COMMA:    "TK_COMMA",
+	TK_ALU:      "TK_ALU",
+	TK_NUMBER:   "TK_NUMBER",
+	TK_PLUS:     "TK_PLUS",
+	TK_MINUS:    "TK_MINUS",
+	TK_L_SQBR:   "TK_L_SQBR",
+	TK_R_SQBR:   "TK_R_SQBR",
+	TK_PUSH:     "TK_PUSH",
+	TK_POP:      "TK_POP",
+	TK_LABEL:    "TK_LABEL",
+	TK_END_LINE: "TK_END_LINE",
 }
 
 func GetTokenTypeString(tokenType uint8) string {
@@ -79,9 +97,9 @@ func GetRegisterNumber(reg string) (uint8, bool) {
 var mapWordToToken = map[string]uint8{
 	"LD":   TK_LD,
 	"ST":   TK_ST,
-	"LD.B": TK_LD_DOT_BYTE,
-	"LD.W": TK_LD_DOT_WORD,
-	"LD.D": TK_LD_DOT_DWORD,
+	"LD.B": TK_LD_BYTE,
+	"LD.W": TK_LD_WORD,
+	"LD.D": TK_LD_DWORD,
 	"R0":   TK_REG,
 	"R1":   TK_REG,
 	"R2":   TK_REG,
@@ -100,7 +118,6 @@ var mapWordToToken = map[string]uint8{
 	"R15":  TK_REG,
 	"SP":   TK_REG_SP,
 	"LR":   TK_REG_LR,
-	",":    TK_COMMA,
 	"ADD":  TK_ALU,
 	"SUB":  TK_ALU,
 	"SHL":  TK_ALU,
@@ -111,6 +128,8 @@ var mapWordToToken = map[string]uint8{
 	"NOT":  TK_ALU,
 	"MUL":  TK_ALU,
 	"INT":  TK_ALU,
+	"PUSH": TK_PUSH,
+	"POP":  TK_POP,
 }
 
 func GetTokenTypeByWord(word string) (uint8, bool) {
