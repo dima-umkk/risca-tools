@@ -12,6 +12,16 @@ func TestLexer_Tokenize(t *testing.T) {
 		expected []Token
 	}{
 		{
+			name:     "just label with colon",
+			input:    "label1:",
+			expected: []Token{{T: TK_LABEL, Tk: "LABEL1"}, {T: TK_COLON, Tk: ":"}},
+		},
+		{
+			name:     "label with colon and instruction",
+			input:    "label1:\tLD R9, R0",
+			expected: []Token{{T: TK_LABEL, Tk: "LABEL1"}, {T: TK_COLON, Tk: ":"}, {T: TK_LD, Tk: "LD"}, {T: TK_REG, Tk: "R9"}, {T: TK_COMMA, Tk: ","}, {T: TK_REG, Tk: "R0"}},
+		},
+		{
 			name:     "ld reg reg comment",
 			input:    "\tLD R9, R0; some comment",
 			expected: []Token{{T: TK_LD, Tk: "LD"}, {T: TK_REG, Tk: "R9"}, {T: TK_COMMA, Tk: ","}, {T: TK_REG, Tk: "R0"}},

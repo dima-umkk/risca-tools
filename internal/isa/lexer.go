@@ -32,7 +32,7 @@ func Tokenize(input string) ([]Token, error) { // input line in uppercase, e.g. 
 		} else {
 			var token Token
 			var found bool
-			token, pos, found = getComma(input, pos)
+			token, pos, found = getCommaOrColon(input, pos)
 			if found {
 				tokens = append(tokens, token)
 				continue
@@ -80,12 +80,17 @@ func getBracket(input string, pos int) (Token, int, bool) {
 	}
 }
 
-func getComma(input string, pos int) (Token, int, bool) {
-	if input[pos] == ',' {
+func getCommaOrColon(input string, pos int) (Token, int, bool) {
+	switch input[pos] {
+	case ':':
+		pos++
+		return Token{T: TK_COLON, Tk: ":"}, pos, true
+	case ',':
 		pos++
 		return Token{T: TK_COMMA, Tk: ","}, pos, true
+	default:
+		return Token{}, pos, false
 	}
-	return Token{}, pos, false
 }
 
 func isWord(input string, pos int) bool {
@@ -123,7 +128,7 @@ func skipWhitespace(input string, pos int) int {
 
 func readWord(input string, pos int) (string, int) { // Read word started from letter, can contain letters, digits and dots (R1, R2, etc.)
 	start := pos
-	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos) || input[pos] == '.') {
+	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos)) {
 		pos++
 	}
 	return input[start:pos], pos
