@@ -49,15 +49,14 @@ const (
 	TK_DJNZ
 
 	//compare tokens
-	TK_EQ
-	TK_NE
-	TK_LS
-	TK_LE
-	TK_GT
-	TK_GE
+	TK_CMP_EQ
+	TK_CMP_NEQ
+	TK_CMP_GT
+	TK_CMP_GTEQ
+	TK_CMP_LT
+	TK_CMP_LTEQ
 
 	TK_LABEL
-	TK_END_LINE
 )
 
 var tokenTypeToString = map[uint8]string{
@@ -88,16 +87,13 @@ var tokenTypeToString = map[uint8]string{
 	TK_CALL:     "TK_CALL",
 	TK_RET:      "TK_RET",
 	TK_DJNZ:     "TK_DJNZ",
-
-	TK_EQ: "TK_EQ",
-	TK_NE: "TK_NE",
-	TK_LS: "TK_LS",
-	TK_LE: "TK_LE",
-	TK_GT: "TK_GT",
-	TK_GE: "TK_GE",
-
+	TK_CMP_EQ:   "TK_CMP_EQ",
+	TK_CMP_NEQ:  "TK_CMP_NEQ",
+	TK_CMP_GT:   "TK_CMP_GT",
+	TK_CMP_GTEQ: "TK_CMP_GTEQ",
+	TK_CMP_LT:   "TK_CMP_LT",
+	TK_CMP_LTEQ: "TK_CMP_LTEQ",
 	TK_LABEL:    "TK_LABEL",
-	TK_END_LINE: "TK_END_LINE",
 }
 
 func GetTokenTypeString(tokenType uint8) string {
@@ -178,13 +174,6 @@ var mapWordToToken = map[string]uint8{
 	"CALL": TK_CALL,
 	"RET":  TK_RET,
 	"DJNZ": TK_DJNZ,
-
-	"EQ": TK_EQ,
-	"NE": TK_NE,
-	"LS": TK_LS,
-	"LE": TK_LE,
-	"GT": TK_GT,
-	"GE": TK_GE,
 }
 
 func GetTokenTypeByWord(word string) (uint8, bool) {

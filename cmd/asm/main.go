@@ -34,6 +34,7 @@ func main() {
 	}
 	defer ofile.Close()
 
+	parser := isa.NewParser()
 	scanner := bufio.NewScanner(ifile)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -47,7 +48,7 @@ func main() {
 		// 	fmt.Print(token, " ")
 		// }
 		// fmt.Println()
-		instruction, skip, err := isa.ParseLine(line)
+		instruction, skip, err := parser.ParseLine(line)
 		if skip {
 			continue
 		}

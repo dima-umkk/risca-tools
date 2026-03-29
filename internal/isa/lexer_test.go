@@ -48,13 +48,13 @@ func TestLexer_Tokenize(t *testing.T) {
 		},
 		{
 			name:     "jmp reg cmp reg, -imm",
-			input:    "jmp r5 EQ r6, -16",
-			expected: []Token{{T: TK_JMP, Tk: "JMP"}, {T: TK_REG, Tk: "R5"}, {T: TK_EQ, Tk: "EQ"}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_MINUS, Tk: "-"}, {T: TK_NUMBER, Tk: "16", ValInt: 16}},
+			input:    "jmp r5 == r6, -16",
+			expected: []Token{{T: TK_JMP, Tk: "JMP"}, {T: TK_REG, Tk: "R5"}, {T: TK_CMP_EQ, Tk: "=="}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_MINUS, Tk: "-"}, {T: TK_NUMBER, Tk: "16", ValInt: 16}},
 		},
 		{
 			name:     "jmp reg cmp reg, reg",
-			input:    "jmp r5 NE r6, r10",
-			expected: []Token{{T: TK_JMP, Tk: "JMP"}, {T: TK_REG, Tk: "R5"}, {T: TK_NE, Tk: "NE"}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_REG, Tk: "R10"}},
+			input:    "jmp r5 != r6, r10",
+			expected: []Token{{T: TK_JMP, Tk: "JMP"}, {T: TK_REG, Tk: "R5"}, {T: TK_CMP_NEQ, Tk: "!="}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_REG, Tk: "R10"}},
 		},
 		{
 			name:     "ret",

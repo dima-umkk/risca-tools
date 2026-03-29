@@ -3,15 +3,17 @@ package isa
 import "fmt"
 
 type Instruction struct {
-	Opcode Opcode
-	Rd     uint8
-	Rs     uint8
-	Rx     uint8
-	Func2  uint8
-	Func3  uint8
-	Func5  uint8
-	Imm    uint16
-	Ex     uint8
+	Opcode  Opcode
+	Rd      uint8
+	Rs      uint8
+	Rx      uint8
+	Func2   uint8
+	Func3   uint8
+	Func5   uint8
+	Imm     uint16
+	Ex      uint8
+	Address uint32
+	Label   string
 }
 
 func (i Instruction) Pack() uint16 {

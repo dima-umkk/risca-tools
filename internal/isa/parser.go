@@ -4,7 +4,26 @@ import (
 	"fmt"
 )
 
-func ParseLine(line string) (Instruction, bool, error) {
+type Parser struct {
+	Instructions []Instruction
+	Memory       []uint8
+	Labels       map[string]uint32
+	Constants    map[string]int32
+	LineNumber   uint32
+	CurAddress   uint32
+}
+
+func NewParser() *Parser {
+	return &Parser{
+		Instructions: make([]Instruction, 1024),
+		Memory:       make([]uint8, 1024),
+		Labels:       make(map[string]uint32),
+		LineNumber:   1,
+		CurAddress:   0,
+	}
+}
+
+func (parser *Parser) ParseLine(line string) (Instruction, bool, error) {
 	tokens, err := Tokenize(line)
 	if err != nil { //Error parsing tokens
 		return Instruction{}, false, err
@@ -13,36 +32,53 @@ func ParseLine(line string) (Instruction, bool, error) {
 		return Instruction{}, true, nil
 	}
 
-	var expectedToken uint8
-	var errorToken uint8
 	var matched bool
-	var matchedRule Rule
-	for _, rule := range syntaxRules {
-		if tokens[0].T == rule.Syntax[0] {
-			matched, expectedToken, errorToken = ruleMatchesTokens(rule, tokens)
+	var instr = Instruction{}
+
+	for len(tokens) > 0 {
+		for _, rule := range syntaxRules {
+			tokens, matched, err, instr = parser.checkRule(rule, tokens, instr)
+			if err != nil {
+				return Instruction{}, false, err
+			}
 			if matched {
-				matchedRule = rule
 				break
 			}
 		}
+		if !matched {
+			return Instruction{}, false, fmt.Errorf("Syntax error")
+		}
 	}
-	if !matched {
-		return Instruction{}, false, fmt.Errorf("Syntax error: expected %s, got %s", GetTokenTypeString(expectedToken), GetTokenTypeString(errorToken))
-	}
-	instr, err := parseInstruction(matchedRule, tokens)
 	return instr, false, err
 }
 
-func ruleMatchesTokens(rule Rule, tokens []Token) (bool, uint8, uint8) {
-	for i, tokenType := range rule.Syntax {
-		if i >= len(tokens) {
-			return false, tokenType, TK_END_LINE
-		}
-		if tokens[i].T != tokenType {
-			return false, tokenType, tokens[i].T
+func tokenIn(token Token, tokens []uint8) bool {
+	for _, t := range tokens {
+		if token.T == t {
+			return true
 		}
 	}
-	return true, 0, 0
+	return false
+}
+
+func (parser *Parser) checkRule(rule Rule, tokens []Token, instr Instruction) ([]Token, bool, error, Instruction) {
+	pos := 0
+	err := error(nil)
+	for pos+len(rule.Syntax)-1 < len(tokens) {
+		match := true
+		for i, sxtokens := range rule.Syntax {
+			if !tokenIn(tokens[pos+i], sxtokens) {
+				match = false
+				break
+			}
+		}
+		if match {
+			tokens, instr, err = rule.ParseFunc(parser, rule, tokens, pos, instr)
+			return tokens, true, err, instr
+		}
+		pos++
+	}
+	return tokens, false, nil, instr
 }
 
 func parseRegisters(tokenrd, tokenrs string) (uint8, uint8, uint8, uint8, error) {
@@ -83,75 +119,88 @@ func makeEx(bankd, banks uint8) uint8 {
 	return (banks << 1) | bankd
 }
 
-func makeAluRegRegInstruction(rule Rule, tokens []Token) (Instruction, error) {
-	var rd, bankd, rs, banks uint8
-	var err error
-	var func5 uint8
-	switch rule.Type {
-	case RuleALURegReg:
-		rd, bankd, rs, banks, err = parseRegisters(tokens[1].Tk, tokens[3].Tk)
-		if err != nil {
-			return Instruction{}, err
-		}
-		func5, err = getFunc5FromALU(tokens[0].Tk)
-	case RuleLDRegReg:
-		rd, bankd, rs, banks, err = parseRegisters(tokens[1].Tk, tokens[3].Tk)
-		func5 = 0
-	case RuleLDRegSP:
-		rd, bankd, err = parseRegister(tokens[1].Tk)
-		func5 = 10
-	case RuleLDRegLR:
-		rd, bankd, err = parseRegister(tokens[1].Tk)
-		func5 = 11
-	case RuleLDSPReg:
-		rs, banks, err = parseRegister(tokens[3].Tk)
-		func5 = 12
-	case RuleLDLRReg:
-		rs, banks, err = parseRegister(tokens[3].Tk)
-		func5 = 13
-	}
-	if err != nil {
-		return Instruction{}, err
-	}
-	return Instruction{Opcode: rule.Opcode, Rd: rd, Rs: rs, Ex: makeEx(bankd, banks), Func5: func5}, nil
-}
-
-func parseInstruction(rule Rule, tokens []Token) (Instruction, error) {
-	switch rule.Type {
-	case RuleALURegReg, RuleLDRegReg, RuleLDRegSP, RuleLDRegLR, RuleLDSPReg, RuleLDLRReg:
-		return makeAluRegRegInstruction(rule, tokens)
-	default:
-		return Instruction{}, fmt.Errorf("Unknown rule type: %d", rule.Type)
-	}
-}
-
 const (
 	RuleALURegReg = iota
-	RuleLDRegReg
-	RuleLDRegSP
-	RuleLDRegLR
-	RuleLDSPReg
-	RuleLDLRReg
 )
 
 type Rule struct {
-	Type   uint8
-	Syntax []uint8
-	Opcode Opcode
+	Type      uint8
+	Syntax    [][]uint8
+	Opcode    Opcode
+	ParseFunc func(parser *Parser, rule Rule, tokens []Token, tokenpos int, instr Instruction) ([]Token, Instruction, error)
 }
 
-var aluRegRegSyntax = []uint8{TK_ALU, TK_REG, TK_COMMA, TK_REG}
-var ldRegRegSyntax = []uint8{TK_LD, TK_REG, TK_COMMA, TK_REG}
-var ldRegSPSyntax = []uint8{TK_LD, TK_REG, TK_COMMA, TK_REG_SP}
-var ldRegLRSyntax = []uint8{TK_LD, TK_REG, TK_COMMA, TK_REG_LR}
-var ldSPRegSyntax = []uint8{TK_LD, TK_REG_SP, TK_COMMA, TK_REG}
-var ldLRRegSyntax = []uint8{TK_LD, TK_REG_LR, TK_COMMA, TK_REG}
+var aluRegRegSyntax = [][]uint8{{TK_ALU, TK_LD}, {TK_REG, TK_REG_SP, TK_REG_LR}, {TK_COMMA}, {TK_REG, TK_REG_SP, TK_REG_LR}}
+
+func ParseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int, instr Instruction) ([]Token, Instruction, error) {
+	var rd, bankd, rs, banks uint8
+	var err error
+	var func5 uint8
+
+	aluT := tokens[tokenpos]
+	regDT := tokens[tokenpos+1]
+	regST := tokens[tokenpos+3]
+
+	if regDT.T != TK_REG_LR && regDT.T != TK_REG_SP {
+		rd, bankd, err = parseRegister(regDT.Tk)
+		if err != nil {
+			return tokens, instr, err
+		}
+	}
+
+	if regST.T != TK_REG_LR && regST.T != TK_REG_SP {
+		rs, banks, err = parseRegister(regST.Tk)
+		if err != nil {
+			return tokens, instr, err
+		}
+	}
+
+	instr.Opcode = rule.Opcode
+	instr.Rd = rd
+	instr.Rs = rs
+	instr.Ex = makeEx(bankd, banks)
+	instr.Address = parser.CurAddress
+	func5 = 0 //LD for default LD REG, REG
+
+	if aluT.T == TK_LD { // LD instruction
+		if regDT.T == TK_REG_LR { // LD LR, REG
+			if regST.T != TK_REG {
+				return tokens, instr, fmt.Errorf("Source should be R0-R15, found %v", regST)
+			}
+			func5 = 13
+		} else if regDT.T == TK_REG_SP { //LD SP, REG
+			if regST.T != TK_REG {
+				return tokens, instr, fmt.Errorf("Source should be R0-R15, found %v", regST)
+			}
+			func5 = 12
+		} else if regST.T == TK_REG_LR { //LD REG, LR
+			if regDT.T != TK_REG {
+				return tokens, instr, fmt.Errorf("Destination should be R0-R15, found %v", regDT)
+			}
+			func5 = 11
+		} else if regST.T == TK_REG_SP { //LD REG, SP
+			if regDT.T != TK_REG {
+				return tokens, instr, fmt.Errorf("Destination should be R0-R15, found %v", regDT)
+			}
+		}
+	} else { //Alu instruction
+		if err != nil {
+			return tokens, instr, err
+		}
+		func5, err = getFunc5FromALU(tokens[0].Tk)
+		if err != nil {
+			return tokens, instr, err
+		}
+	}
+	instr.Func5 = func5
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+4:]...)
+
+	parser.Instructions = append(parser.Instructions, instr)
+	parser.CurAddress += 2
+	return tokens, instr, nil
+}
 
 var syntaxRules = []Rule{
-	{Type: RuleALURegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
-	{Type: RuleLDRegReg, Syntax: ldRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
-	{Type: RuleLDRegSP, Syntax: ldRegSPSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
-	{Type: RuleLDRegLR, Syntax: ldRegLRSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
-	{Type: RuleLDSPReg, Syntax: ldSPRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
-	{Type: RuleLDLRReg, Syntax: ldLRRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG)},
+	{Type: RuleALURegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: ParseAluRegReg},
 }
