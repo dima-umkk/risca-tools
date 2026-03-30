@@ -10,7 +10,7 @@ type Instruction struct {
 	Func2   uint8
 	Func3   uint8
 	Func5   uint8
-	Imm     uint16
+	Imm     int16
 	Ex      uint8
 	Address uint32
 	Label   string
@@ -19,16 +19,30 @@ type Instruction struct {
 func (i Instruction) Pack() uint16 {
 	var code uint16 = uint16(i.Opcode.Opc)
 
+	//Pack instruction by opcode type
 	switch i.Opcode.Type {
-	case OP_ALU_REG_REG:
+	case OP_TYPE_2_REG:
 		code |= uint16(i.Rd) << 3
 		code |= uint16(i.Rs) << 13
 		code |= uint16(i.Ex) << 11
 		code |= uint16(i.Func5) << 6
+	case OP_TYPE_8_IMM_REG:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func2) << 6
+		code |= uint16(i.Imm) << 8
+	case OP_TYPE_7_IMM_REG:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func3) << 6
+		code |= uint16(i.Imm) << 9
 		//TODO:
 	}
 
 	return code
+}
+
+func (i Instruction) makeEx(bankd, banks uint8) Instruction {
+	i.Ex = (banks << 1) | bankd
+	return i
 }
 
 func getRd(inst uint16) uint8 {
@@ -43,19 +57,43 @@ func getFunc5(inst uint16) uint8 {
 	return uint8(inst>>6) & 0b0001_1111
 }
 
+func getFunc3(inst uint16) uint8 {
+	return uint8(inst>>6) & 0b0000_0111
+}
+
+func getFunc2(inst uint16) uint8 {
+	return uint8(inst>>6) & 0b0000_0011
+}
+
 func getEx(inst uint16) uint8 {
 	return uint8(inst>>11) & 0b0000_0011
+}
+
+func getImm8(inst uint16) int16 {
+	return int16(int8(inst >> 8))
+}
+
+func getImm7(inst uint16) int16 {
+	return int16(int8(inst>>8) >> 1)
 }
 
 func Parse(inst uint16) Instruction {
 	i := Instruction{}
 	i.Opcode = GetOpcode(uint8(inst) & 0b0000_0111)
-	switch i.Opcode.Opc {
-	case OP_ALU_REG_REG:
+	switch i.Opcode.Type {
+	case OP_TYPE_3_REG:
 		i.Rd = getRd(inst)
 		i.Rs = getRs(inst)
 		i.Func5 = getFunc5(inst)
 		i.Ex = getEx(inst)
+	case OP_TYPE_8_IMM_REG:
+		i.Rd = getRd(inst)
+		i.Func2 = getFunc2(inst)
+		i.Imm = int16(getImm8(inst))
+	case OP_TYPE_7_IMM_REG:
+		i.Rd = getRd(inst)
+		i.Func3 = getFunc3(inst)
+		i.Imm = int16(getImm7(inst))
 		//TODO:
 	}
 	return i
@@ -126,7 +164,42 @@ func (i Instruction) String() string {
 			return fmt.Sprintf("%s %s, %s", name, rdStr, rsStr)
 		}
 	case OP_LD_REG_IMM:
-		return fmt.Sprintf("LD.%d R%d, 0x%x", i.Func2, i.Rd, i.Imm)
+		rdBanked := i.Rd
+		if (i.Func2 & 0b0000_0010) != 0 {
+			rdBanked += 7
+		}
+		return fmt.Sprintf("LD.%d R%d, 0x%02X(%d)", i.Func2&0b0000_0001, rdBanked, uint8(i.Imm), i.Imm)
+	case OP_ALU_REG_IMM:
+		rdBanked := i.Rd
+		if (i.Func3 & 0b0000_0100) != 0 {
+			rdBanked += 7
+		}
+		var operand string
+		funcOper := i.Func3 & 0b0000_0011
+		imm := i.Imm
+		switch funcOper {
+		case 0:
+			operand = "ADD"
+			if i.Imm < 0 {
+				operand = "SUB"
+				imm = ^imm + 1
+			}
+		case 1:
+			operand = "SHL"
+			if i.Imm < 0 {
+				operand = "SHR"
+				imm = ^imm + 1
+			}
+		case 2:
+			operand = "LDI"
+		case 3:
+			operand = "DJNZ"
+		}
+		if funcOper == 2 || funcOper == 3 {
+			return fmt.Sprintf("%s R%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, uint32(int32(i.Address)+int32(i.Imm)))
+		} else {
+			return fmt.Sprintf("%s R%d, 0x%02X(%d)", operand, rdBanked, uint8(imm), imm)
+		}
 		//TODO:
 	}
 	return ""

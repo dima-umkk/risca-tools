@@ -50,6 +50,7 @@ func main() {
 		// fmt.Println()
 		instruction, skip, err := parser.ParseLine(line)
 		if skip {
+			fmt.Printf("\n")
 			continue
 		}
 		if err != nil {
@@ -57,10 +58,21 @@ func main() {
 			return
 		}
 		fmt.Printf("0x%04X %s\n", instruction.Pack(), instruction)
-		err = binary.Write(ofile, binary.LittleEndian, instruction.Pack())
+	}
+
+	err = parser.ProcessLabels()
+	if err != nil {
+		fmt.Printf("Error processing labels! %v\n", err)
+		return
+	}
+
+	for _, instr := range parser.Instructions {
+		fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
+		err = binary.Write(ofile, binary.LittleEndian, instr.Pack())
 		if err != nil {
 			panic(err)
 		}
+
 	}
 
 	if err := scanner.Err(); err != nil {

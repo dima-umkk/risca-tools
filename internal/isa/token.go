@@ -26,8 +26,6 @@ const (
 	TK_LD_DWORD
 	TK_LD_0
 	TK_LD_1
-	TK_LD_2
-	TK_LD_3
 	TK_REG
 	TK_REG_SP
 	TK_REG_LR
@@ -68,8 +66,6 @@ var tokenTypeToString = map[uint8]string{
 	TK_LD_DWORD: "TK_LD_DWORD",
 	TK_LD_0:     "TK_LD_0",
 	TK_LD_1:     "TK_LD_1",
-	TK_LD_2:     "TK_LD_2",
-	TK_LD_3:     "TK_LD_3",
 	TK_REG:      "TK_REG",
 	TK_REG_SP:   "TK_REG_SP",
 	TK_REG_LR:   "TK_REG_LR",
@@ -138,8 +134,6 @@ var mapWordToToken = map[string]uint8{
 	"LD.D": TK_LD_DWORD,
 	"LD.0": TK_LD_0,
 	"LD.1": TK_LD_1,
-	"LD.2": TK_LD_2,
-	"LD.3": TK_LD_3,
 	"R0":   TK_REG,
 	"R1":   TK_REG,
 	"R2":   TK_REG,
