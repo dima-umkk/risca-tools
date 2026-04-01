@@ -19,6 +19,7 @@ const (
 	OP_JUMP_CALL_RET_REG = 0x05
 	OP_JUMP_REL          = 0x06
 	OP_CALL_REL          = 0x07
+	OP_DB                = 0x08 //virtual opcode to define variables in memory
 )
 
 const (
@@ -27,6 +28,7 @@ const (
 	OP_TYPE_7_IMM_REG = 0x02
 	OP_TYPE_8_IMM_REG = 0x03
 	OP_TYPE_13_IMM    = 0x04
+	OP_TYPE_DB        = 0x05 //virtual type to define variables
 )
 
 var (
@@ -38,6 +40,7 @@ var (
 	OpJumpCallRetReg = Opcode{Opc: OP_JUMP_CALL_RET_REG, Name: "JUMP_CALL_RET_REG", Type: OP_TYPE_3_REG}
 	OpJumpRel        = Opcode{Opc: OP_JUMP_REL, Name: "JUMP_REL", Type: OP_TYPE_3_REG}
 	OpCallRel        = Opcode{Opc: OP_CALL_REL, Name: "CALL_REL", Type: OP_TYPE_13_IMM}
+	OpDB             = Opcode{Opc: OP_DB, Name: "DB", Type: OP_TYPE_DB}
 )
 
 var opcodeMap = map[uint8]Opcode{
@@ -49,6 +52,7 @@ var opcodeMap = map[uint8]Opcode{
 	OP_JUMP_CALL_RET_REG: OpJumpCallRetReg,
 	OP_JUMP_REL:          OpJumpRel,
 	OP_CALL_REL:          OpCallRel,
+	OP_DB:                OpDB,
 }
 
 func GetOpcode(opc uint8) Opcode {

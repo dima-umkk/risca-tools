@@ -43,6 +43,7 @@ func main() {
 
 		skip, err := parser.ParseLine(line)
 		if skip {
+			lineNumber++
 			continue
 		}
 		if err != nil {
@@ -50,6 +51,7 @@ func main() {
 			return
 		}
 		lineNumber++
+
 	}
 
 	err = parser.ProcessLabels()

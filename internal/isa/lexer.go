@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-func Tokenize(input string) ([]Token, error) { // input line in uppercase, e.g. "ADD R1, R2"
-	input = strings.ToUpper(input)
+func Tokenize(origInput string) ([]Token, error) { // input line in uppercase, e.g. "ADD R1, R2"
+	input := strings.ToUpper(origInput)
 	var tokens []Token
 	pos := 0
 	for pos < len(input) {
@@ -32,6 +32,16 @@ func Tokenize(input string) ([]Token, error) { // input line in uppercase, e.g. 
 		} else {
 			var token Token
 			var found bool
+			token, pos, found = readString(origInput, pos)
+			if found {
+				tokens = append(tokens, token)
+				continue
+			}
+			token, pos, found = getBucks(input, pos)
+			if found {
+				tokens = append(tokens, token)
+				continue
+			}
 			token, pos, found = getCommaOrColon(input, pos)
 			if found {
 				tokens = append(tokens, token)
@@ -53,7 +63,7 @@ func Tokenize(input string) ([]Token, error) { // input line in uppercase, e.g. 
 				continue
 			}
 
-			return nil, fmt.Errorf("Unexpeced symbol on pos %d: %c. %s>%s", pos, input[pos], input[:pos], input[pos:])
+			return nil, fmt.Errorf("Unexpeced symbol on pos %d: '%c'. %s>%s", pos, input[pos], input[:pos], input[pos:])
 		}
 	}
 	return tokens, nil
@@ -89,6 +99,14 @@ func getCompareOperator(input string, pos int) (Token, int, bool) {
 		} else {
 			return Token{T: TK_CMP_GT, Tk: ">"}, pos, true
 		}
+	}
+	return Token{}, pos, false
+}
+
+func getBucks(input string, pos int) (Token, int, bool) {
+	if input[pos] == '$' {
+		pos++
+		return Token{T: TK_BUCKS, Tk: "$"}, pos, true
 	}
 	return Token{}, pos, false
 }
@@ -178,7 +196,7 @@ func isHexDigit(input string, pos int) bool {
 	return (input[pos] >= '0' && input[pos] <= '9') || (input[pos] >= 'A' && input[pos] <= 'F')
 }
 
-func readNumber(input string, pos int) (int, int, bool) { // Read number started from digit
+func readNumber(input string, pos int) (int32, int, bool) { // Read number started from digit
 	if input[pos] == '0' && len(input) > pos+1 && input[pos+1] == 'X' { //Read hex
 		pos += 2 // Skip '0X' prefix
 		start := pos
@@ -186,7 +204,7 @@ func readNumber(input string, pos int) (int, int, bool) { // Read number started
 			pos++
 		}
 		value, _ := strconv.ParseInt(input[start:pos], 16, 64)
-		return int(value), pos, true
+		return int32(value), pos, true
 	} else { //Read decimal
 		start := pos
 		for pos < len(input) && isDigit(input, pos) {
@@ -196,7 +214,23 @@ func readNumber(input string, pos int) (int, int, bool) { // Read number started
 		if err != nil {
 			return 0, pos, false
 		}
-		return value, pos, true
+		return int32(value), pos, true
 	}
 
+}
+
+func readString(input string, pos int) (Token, int, bool) {
+	if input[pos] != '\'' {
+		return Token{}, pos, false
+	}
+	pos++
+	start := pos
+	for pos < len(input) && input[pos] != '\'' {
+		pos++
+	}
+	if input[pos] != '\'' {
+		return Token{}, pos, false
+	}
+	str := string(input[start:pos])
+	return Token{T: TK_STRING, Tk: str, ValStr: str}, pos + 1, true
 }

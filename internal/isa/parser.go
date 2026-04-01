@@ -6,7 +6,7 @@ import (
 
 type Parser struct {
 	Instructions []Instruction
-	Memory       []uint8
+	Memory       map[uint32]Instruction
 	Labels       map[string]uint32
 	Constants    map[string]int32
 	CurAddress   uint32
@@ -15,8 +15,9 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{
 		Instructions: make([]Instruction, 0, 1024),
-		Memory:       make([]uint8, 0, 1024),
+		Memory:       make(map[uint32]Instruction),
 		Labels:       make(map[string]uint32),
+		Constants:    make(map[string]int32),
 		CurAddress:   0,
 	}
 }
@@ -56,6 +57,15 @@ func tokenIn(token Token, tokens []uint8) bool {
 		}
 	}
 	return false
+}
+
+func (parser *Parser) addInstruction(instruction Instruction) error {
+	if _, ok := parser.Memory[instruction.Address]; ok {
+		return fmt.Errorf("Duplicate instruction at address: %d. Instructinon: %s", instruction.Address, instruction)
+	}
+	parser.Instructions = append(parser.Instructions, instruction)
+	parser.Memory[instruction.Address] = instruction
+	return nil
 }
 
 func (parser *Parser) applyRule(rule Rule, tokens []Token) ([]Token, bool, error) {

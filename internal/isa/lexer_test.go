@@ -12,6 +12,31 @@ func TestLexer_Tokenize(t *testing.T) {
 		expected []Token
 	}{
 		{
+			name:     "define string",
+			input:    "Mystr db 'Hello',0",
+			expected: []Token{{T: TK_LABEL, Tk: "MYSTR"}, {T: TK_DB, Tk: "DB"}, {T: TK_STRING, Tk: "Hello", ValStr: "Hello"}, {T: TK_COMMA, Tk: ","}, {T: TK_NUMBER, Tk: "0", ValInt: 0}},
+		},
+		{
+			name:     "string",
+			input:    "'Hello'",
+			expected: []Token{{T: TK_STRING, Tk: "Hello", ValStr: "Hello"}},
+		},
+		{
+			name:     "const read",
+			input:    "add r1, $const1",
+			expected: []Token{{T: TK_ALU, Tk: "ADD"}, {T: TK_REG, Tk: "R1"}, {T: TK_COMMA, Tk: ","}, {T: TK_BUCKS, Tk: "$"}, {T: TK_LABEL, Tk: "CONST1"}},
+		},
+		{
+			name:     "equ const define",
+			input:    "const1 equ 1234567890",
+			expected: []Token{{T: TK_LABEL, Tk: "CONST1"}, {T: TK_EQU, Tk: "EQU"}, {T: TK_NUMBER, Tk: "1234567890", ValInt: 1234567890}},
+		},
+		{
+			name:     "equ const define",
+			input:    "equ const1 1234567890",
+			expected: []Token{{T: TK_EQU, Tk: "EQU"}, {T: TK_LABEL, Tk: "CONST1"}, {T: TK_NUMBER, Tk: "1234567890", ValInt: 1234567890}},
+		},
+		{
 			name:     "just label with colon",
 			input:    "label1:",
 			expected: []Token{{T: TK_LABEL, Tk: "LABEL1"}, {T: TK_COLON, Tk: ":"}},

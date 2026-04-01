@@ -34,6 +34,8 @@ func (i Instruction) Pack() uint16 {
 		code |= uint16(i.Rd) << 3
 		code |= uint16(i.Func3) << 6
 		code |= uint16(i.Imm) << 9
+	case OP_TYPE_DB:
+		code = uint16(i.Imm)
 		//TODO:
 	}
 
@@ -197,7 +199,8 @@ func (i Instruction) String() string {
 		}
 		switch funcOper {
 		case 2: //LDI
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, uint32(int32(i.Address)+int32((-i.Imm)<<1)))
+			address := uint32(int32(i.Address) + int32((-i.Imm)<<1))
+			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, address)
 		case 3: //DJNZ
 			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, uint32(int32(i.Address)+int32(i.Imm<<1)))
 		default:

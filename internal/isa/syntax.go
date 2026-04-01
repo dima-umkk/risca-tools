@@ -7,6 +7,9 @@ const (
 	LdRegImm
 	AluRegImm
 	Label
+	Equ
+	EvalConst
+	DefineDBVar
 )
 
 type Rule struct {
@@ -20,12 +23,18 @@ var aluRegRegSyntax = [][]uint8{{TK_ALU, TK_LD}, {TK_REG, TK_REG_SP, TK_REG_LR},
 var ldRegImmSyntax = [][]uint8{{TK_LD_0, TK_LD_1}, {TK_REG}, {TK_COMMA}, {TK_NUMBER}}
 var labelSyntax = [][]uint8{{TK_LABEL}, {TK_COLON}}
 var aluRegImmSyntax = [][]uint8{{TK_ALU, TK_LDI, TK_DJNZ}, {TK_REG}, {TK_COMMA}, {TK_NUMBER, TK_LABEL}}
+var constEquSyntax = [][]uint8{{TK_LABEL}, {TK_EQU}, {TK_NUMBER}}
+var evalConstSyntax = [][]uint8{{TK_BUCKS}, {TK_LABEL}}
+var defineVarSyntax = [][]uint8{{TK_LABEL}, {TK_DB}, {TK_NUMBER, TK_STRING}}
 
 var syntaxRules = []Rule{
-	{Type: RuleALURegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: ParseAluRegReg},
-	{Type: LdRegImm, Syntax: ldRegImmSyntax, Opcode: GetOpcode(OP_LD_REG_IMM), ParseFunc: ParseLdRegImm},
-	{Type: AluRegImm, Syntax: aluRegImmSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: ParseAluRegImm},
-	{Type: Label, Syntax: labelSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: ParseLabel},
+	{Type: Equ, Syntax: constEquSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseConstEqu},
+	{Type: EvalConst, Syntax: evalConstSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseEvalConst},
+	{Type: Label, Syntax: labelSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseLabel},
+	{Type: DefineDBVar, Syntax: defineVarSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDbVar},
+	{Type: RuleALURegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: parseAluRegReg},
+	{Type: LdRegImm, Syntax: ldRegImmSyntax, Opcode: GetOpcode(OP_LD_REG_IMM), ParseFunc: parseLdRegImm},
+	{Type: AluRegImm, Syntax: aluRegImmSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseAluRegImm},
 }
 
 func parseRegister(tokenrd string) (uint8, uint8, error) {
@@ -41,7 +50,7 @@ func parseRegister(tokenrd string) (uint8, uint8, error) {
 	return rd, bankd, nil
 }
 
-func ParseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+func parseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	var rd, bankd, rs, banks uint8
 	var err error
 	var func5 uint8
@@ -106,12 +115,12 @@ func ParseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	//Remove parsed tokens from the list
 	tokens = append(tokens[:tokenpos], tokens[tokenpos+4:]...)
 
-	parser.Instructions = append(parser.Instructions, instr)
+	parser.addInstruction(instr)
 	parser.CurAddress += 2
 	return tokens, nil
 }
 
-func ParseLdRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+func parseLdRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	var rd, bankd, func2 uint8
 	var err error
 
@@ -138,7 +147,7 @@ func ParseLdRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]T
 	//Remove parsed tokens from the list
 	tokens = append(tokens[:tokenpos], tokens[tokenpos+4:]...)
 
-	parser.Instructions = append(parser.Instructions, instr)
+	parser.addInstruction(instr)
 	parser.CurAddress += 2
 	return tokens, nil
 }
@@ -152,7 +161,7 @@ func ParseLdRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]T
 // 1) SHL/SHR: Rd = << or >> signed(IMM & 31)
 // 2) LDI Rd = [PC - IMM]; 32 bit constant loading, IMM in 32 bit dword (-512 ... 0 bytes)
 // 3) DJNZ Rd, PC + signed(IMM); Rd-- if not zero, jump taken. IMM in instructions (-64 ... +63 instructions)
-func ParseAluRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+func parseAluRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	var rd, bankd, func3 uint8
 	var err error
 
@@ -200,16 +209,107 @@ func ParseAluRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	//Remove parsed tokens from the list
 	tokens = append(tokens[:tokenpos], tokens[tokenpos+4:]...)
 
-	parser.Instructions = append(parser.Instructions, instr)
+	parser.addInstruction(instr)
 	parser.CurAddress += 2
 	return tokens, nil
 }
 
-func ParseLabel(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
-	labelT := tokens[tokenpos]
-	parser.Labels[labelT.Tk] = parser.CurAddress
+func addLabel(parser *Parser, token Token) error {
+	if _, ok := parser.Labels[token.Tk]; ok {
+		return fmt.Errorf("Label '%s' already defined! On address: 0x%08x", token.Tk, parser.Labels[token.Tk])
+	}
+	parser.Labels[token.Tk] = parser.CurAddress
+	return nil
+}
 
+func parseLabel(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	if err := addLabel(parser, tokens[tokenpos]); err != nil {
+		return tokens, err
+	}
 	//Remove parsed tokens from the list
 	tokens = append(tokens[:tokenpos], tokens[tokenpos+2:]...)
+	return tokens, nil
+}
+
+func parseConstEqu(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	constT := tokens[tokenpos]
+	numberT := tokens[tokenpos+2]
+	if _, ok := parser.Constants[constT.Tk]; ok {
+		return tokens, fmt.Errorf("Constant '%s' already defined! Value: 0x%08x", constT.Tk, parser.Constants[constT.Tk])
+	}
+	parser.Constants[constT.Tk] = numberT.ValInt
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+3:]...)
+	return tokens, nil
+}
+
+// $const1; example: add r1, $const1
+func parseEvalConst(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	constT := tokens[tokenpos+1]
+	constVal, ok := parser.Constants[constT.Tk]
+	if !ok {
+		return tokens, fmt.Errorf("Constant '%s' is not defined!", constT.Tk)
+	}
+	//Remove second token and replace first by number
+	tokens[tokenpos] = Token{T: TK_NUMBER, Tk: string(constVal), ValInt: constVal}
+	tokens = append(tokens[:tokenpos+1], tokens[tokenpos+2:]...)
+	return tokens, nil
+}
+
+//Example: Mystr db 'Hello',0
+func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	labelT := tokens[tokenpos]
+	instr := Instruction{}
+	instrByte := 1
+
+	if err := addLabel(parser, labelT); err != nil {
+		return tokens, err
+	}
+
+	for i := tokenpos + 2; i < len(tokens); i++ {
+		numberT := tokens[i]
+		switch numberT.T {
+		case TK_COMMA:
+			continue
+		case TK_NUMBER:
+			if numberT.ValInt < 0 || numberT.ValInt > 255 {
+				return tokens, fmt.Errorf("Number out of range(0..255) for db: 0x%08X", numberT.ValInt)
+			}
+			if instrByte == 1 {
+				instr.Opcode = rule.Opcode
+				instr.Address = parser.CurAddress
+				instr.Imm = instr.Imm | int16(numberT.ValInt)<<8
+				instrByte = 0
+			} else {
+				instr.Imm = instr.Imm | int16(numberT.ValInt)
+				instrByte = 1
+				parser.addInstruction(instr)
+				parser.CurAddress += 2
+				instr = Instruction{}
+			}
+		case TK_STRING:
+			for _, char := range []byte(numberT.ValStr) {
+				if instrByte == 1 {
+					instr.Opcode = rule.Opcode
+					instr.Address = parser.CurAddress
+					instr.Imm = instr.Imm | int16(char)<<8
+					instrByte = 0
+				} else {
+					instr.Imm = instr.Imm | int16(char)
+					instrByte = 1
+					parser.addInstruction(instr)
+					parser.CurAddress += 2
+					instr = Instruction{}
+				}
+			}
+		default:
+			return tokens, fmt.Errorf("Unexpected token: %s", numberT)
+		}
+	}
+	if instrByte == 0 {
+		parser.addInstruction(instr)
+		parser.CurAddress += 2
+	}
+	tokens = []Token{}
 	return tokens, nil
 }

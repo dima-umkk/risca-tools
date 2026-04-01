@@ -5,7 +5,7 @@ import "fmt"
 type Token struct {
 	T      uint8
 	Tk     string
-	ValInt int
+	ValInt int32
 	ValStr string
 }
 
@@ -55,6 +55,13 @@ const (
 	TK_CMP_LTEQ
 
 	TK_LABEL
+	TK_EQU
+	TK_BUCKS
+
+	//vars
+	TK_DB
+	TK_DD
+	TK_STRING
 )
 
 var tokenTypeToString = map[uint8]string{
@@ -90,6 +97,11 @@ var tokenTypeToString = map[uint8]string{
 	TK_CMP_LT:   "TK_CMP_LT",
 	TK_CMP_LTEQ: "TK_CMP_LTEQ",
 	TK_LABEL:    "TK_LABEL",
+	TK_EQU:      "TK_EQU",
+	TK_BUCKS:    "TK_BUCKS",
+	TK_DB:       "TK_DB",
+	TK_DD:       "TK_DD",
+	TK_STRING:   "TK_STRING",
 }
 
 func GetTokenTypeString(tokenType uint8) string {
@@ -168,6 +180,9 @@ var mapWordToToken = map[string]uint8{
 	"CALL": TK_CALL,
 	"RET":  TK_RET,
 	"DJNZ": TK_DJNZ,
+	"EQU":  TK_EQU,
+	"DB":   TK_DB,
+	"DD":   TK_DD,
 }
 
 func GetTokenTypeByWord(word string) (uint8, bool) {
