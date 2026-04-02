@@ -186,7 +186,7 @@ func skipWhitespace(input string, pos int) int {
 
 func readWord(input string, pos int) (string, int) { // Read word started from letter, can contain letters, digits and dots (R1, R2, etc.)
 	start := pos
-	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos)) {
+	for pos < len(input) && (isWord(input, pos) || isDigit(input, pos) || input[pos] == '_') {
 		pos++
 	}
 	return input[start:pos], pos

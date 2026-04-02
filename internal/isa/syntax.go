@@ -177,7 +177,6 @@ func parseAluRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	if err != nil {
 		return tokens, err
 	}
-	func3 = bankd << 2
 
 	if immT.T == TK_LABEL {
 		instr.Label = immT.Tk
@@ -204,6 +203,7 @@ func parseAluRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 		return tokens, fmt.Errorf("Instruction should be one of: ADD, SUB, SHL, SHR, LDI, DJNZ! '%s' not found", aluT.Tk)
 	}
 
+	func3 = func3 | bankd<<2
 	instr.Opcode = rule.Opcode
 	instr.Rd = rd
 
@@ -299,20 +299,22 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 		case TK_COMMA:
 			continue
 		case TK_NUMBER:
-			if numberT.ValInt < 0 || numberT.ValInt > 255 {
-				return tokens, fmt.Errorf("Number out of range(0..255) for db: 0x%08X", numberT.ValInt)
-			}
-			if instrByte == 1 {
-				instr.Opcode = rule.Opcode
-				instr.Address = parser.CurAddress
-				instr.Imm = instr.Imm | int16(numberT.ValInt)<<8
-				instrByte = 0
-			} else {
-				instr.Imm = instr.Imm | int16(numberT.ValInt)
-				instrByte = 1
-				parser.addInstruction(instr)
-				parser.CurAddress += 2
-				instr = Instruction{}
+			// if numberT.ValInt < 0 || numberT.ValInt > 255 {
+			// 	return tokens, fmt.Errorf("Number out of range(0..255) for db: 0x%08X", uint32(numberT.ValInt))
+			// }
+			for number := uint32(numberT.ValInt); number > 0; number >>= 8 {
+				if instrByte == 1 {
+					instr.Opcode = rule.Opcode
+					instr.Address = parser.CurAddress
+					instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
+					instrByte = 0
+				} else {
+					instr.Imm = instr.Imm | int16(number&0x000000FF)
+					instrByte = 1
+					parser.addInstruction(instr)
+					parser.CurAddress += 2
+					instr = Instruction{}
+				}
 			}
 		case TK_STRING:
 			for _, char := range []byte(numberT.ValStr) {
