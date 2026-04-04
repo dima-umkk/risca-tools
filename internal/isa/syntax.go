@@ -390,7 +390,7 @@ func parseRetCond(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]To
 		return tokens, err
 	}
 	if banks == 1 || bankx == 1 {
-		return tokens, fmt.Errorf("Only registers from 1 bank available (R0-R7) for JMP/CALL REG COND REG , REG. Got %v, %v, %v", regsT, regxT)
+		return tokens, fmt.Errorf("Only registers from 1 bank available (R0-R7) for JMP/CALL REG COND REG , REG. Got %v, %v", regsT, regxT)
 	}
 	func2 := uint8(0)
 	switch condT.T {
