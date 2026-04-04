@@ -13,7 +13,7 @@ import (
 func main() {
 	fmt.Println("RiscA Assembler v.1.0.0")
 
-	ifileName := flag.String("i", "input.asm", "Input file")
+	ifileName := flag.String("i", "input.rasm", "Input file")
 	ofileName := flag.String("o", "input.bin", "Output file")
 	flag.Usage = func() {
 		fmt.Printf("Usage: TODO")

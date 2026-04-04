@@ -131,7 +131,11 @@ func (parser *Parser) ProcessLabels() error {
 					parser.Instructions[i].Func2 = uint8(offset>>3) & 0b0000_0011
 					parser.Instructions[i].Rx = uint8(offset) & 0b0000_0111
 				} else {
-					//TODO:
+					if offset < -8 || offset > 7 {
+						return fmt.Errorf("Label too large for instruction! %s, %s", instr.Label, instr)
+					}
+					parser.Instructions[i].Func2 = uint8(offset) & 0b0000_0011
+					parser.Instructions[i].Ex = uint8(offset>>2) & 0b0000_0011
 				}
 			default:
 				return fmt.Errorf("Label not applicable for instruction! %s, %s", instr.Label, instr)

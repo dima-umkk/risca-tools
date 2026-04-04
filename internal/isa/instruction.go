@@ -42,6 +42,8 @@ func (i Instruction) Pack() uint16 {
 		code |= uint16(i.Imm) << 9
 	case OP_TYPE_DB:
 		code = uint16(i.Imm)
+	case OP_TYPE_13_IMM:
+		code |= uint16(i.Imm) << 3
 		//TODO:
 	}
 
@@ -71,6 +73,8 @@ func Parse(inst uint16) Instruction {
 		i.Rd = getRd(inst)
 		i.Func3 = getFunc3(inst)
 		i.Imm = int16(getImm7(inst))
+	case OP_TYPE_13_IMM:
+		i.Imm = getImm13(inst)
 		//TODO:
 	}
 	return i
@@ -121,6 +125,10 @@ func getImm8(inst uint16) int16 {
 
 func getImm7(inst uint16) int16 {
 	return int16(int8(inst>>8) >> 1)
+}
+
+func getImm13(inst uint16) int16 {
+	return int16(inst) >> 3
 }
 
 var mapFunc5ToAluRegReg = map[uint8]string{
@@ -230,10 +238,41 @@ func (i Instruction) String() string {
 		}
 	case OP_JUMP_REL:
 		if i.Rd == 0 { //JMP PC+IMM
-			offset := int16(i.Rs)<<7 | int16(i.Ex)<<5 | int16(i.Func2)<<3 | int16(i.Rx)
+			offset := int16(int8(i.Rs<<1)>>1)<<7 | int16(i.Ex)<<5 | int16(i.Func2)<<3 | int16(i.Rx)
 			address := uint32(int32(i.Address) + int32(offset<<1))
-			return fmt.Sprintf("JMP 0x%04X(%d) -> %08X", uint16(offset), offset, address)
+			return fmt.Sprintf("JMP\t0x%04X(%d) -> %08X", uint16(offset), offset, address)
 		} else {
+			offset := int16(int8(i.Ex<<6))>>4 | int16(i.Func2)
+			address := uint32(int32(i.Address) + int32(offset<<1))
+			cond := ""
+			switch i.Rd {
+			case 1:
+				cond = "=="
+			case 2:
+				cond = "!="
+			case 3:
+				cond = ">"
+			case 4:
+				cond = ">="
+			case 5:
+				cond = "<"
+			case 6:
+				cond = "<="
+			}
+			return fmt.Sprintf("JMP\tR%d %s R%d 0x%04X(%d) -> %08X", i.Rs, cond, i.Rx, uint16(offset), offset, address)
+		}
+	case OP_CALL_REL:
+		offset := i.Imm
+		address := uint32(int32(i.Address) + int32(offset<<1))
+		return fmt.Sprintf("CALL\t0x%04X(%d) -> %08X", uint16(offset), offset, address)
+	case OP_JUMP_CALL_RET_REG:
+		switch i.Ex {
+		case 2: //RET
+			if i.Func2 == 0 {
+				return fmt.Sprintf("RET")
+			} else { //RET func
+				//TODO:
+			}
 			//TODO:
 		}
 		//TODO:
