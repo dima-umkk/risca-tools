@@ -42,6 +42,11 @@ func Tokenize(origInput string) ([]Token, error) { // input line in uppercase, e
 				tokens = append(tokens, token)
 				continue
 			}
+			token, pos, found = getAt(input, pos)
+			if found {
+				tokens = append(tokens, token)
+				continue
+			}
 			token, pos, found = getCommaOrColon(input, pos)
 			if found {
 				tokens = append(tokens, token)
@@ -107,6 +112,14 @@ func getBucks(input string, pos int) (Token, int, bool) {
 	if input[pos] == '$' {
 		pos++
 		return Token{T: TK_BUCKS, Tk: "$"}, pos, true
+	}
+	return Token{}, pos, false
+}
+
+func getAt(input string, pos int) (Token, int, bool) {
+	if input[pos] == '@' {
+		pos++
+		return Token{T: TK_AT, Tk: "@"}, pos, true
 	}
 	return Token{}, pos, false
 }

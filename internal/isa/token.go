@@ -31,6 +31,7 @@ const (
 	TK_REG_LR
 	TK_COMMA
 	TK_COLON
+	TK_AT
 	TK_ALU
 	TK_NUMBER
 	TK_PLUS
@@ -78,6 +79,7 @@ var tokenTypeToString = map[uint8]string{
 	TK_REG_LR:   "TK_REG_LR",
 	TK_COMMA:    "TK_COMMA",
 	TK_COLON:    "TK_COLON",
+	TK_AT:       "TK_AT",
 	TK_ALU:      "TK_ALU",
 	TK_NUMBER:   "TK_NUMBER",
 	TK_PLUS:     "TK_PLUS",

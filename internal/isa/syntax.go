@@ -12,7 +12,9 @@ const (
 	Label
 	Equ
 	EvalConst
+	EvalLabelRef
 	DefineDBVar
+	DefineDDVar
 	JmpRel
 	JmpRelCond
 	CallRel
@@ -32,7 +34,9 @@ var labelSyntax = [][]uint8{{TK_LABEL}, {TK_COLON}}
 var aluRegImmSyntax = [][]uint8{{TK_ALU, TK_LDI, TK_DJNZ}, {TK_REG}, {TK_COMMA}, {TK_NUMBER, TK_LABEL}}
 var constEquSyntax = [][]uint8{{TK_LABEL}, {TK_EQU}, {TK_NUMBER}}
 var evalConstSyntax = [][]uint8{{TK_BUCKS}, {TK_LABEL}}
+var evalLabelRefSyntax = [][]uint8{{TK_AT}, {TK_LABEL}}
 var defineVarSyntax = [][]uint8{{TK_LABEL}, {TK_DB}, {TK_NUMBER, TK_STRING}}
+var defineVarDDSyntax = [][]uint8{{TK_LABEL}, {TK_DD}, {TK_NUMBER}}
 var jmpRelSyntax = [][]uint8{{TK_JMP}, {TK_NUMBER, TK_LABEL}}
 var jmpRelCondSyntax = [][]uint8{{TK_JMP}, {TK_REG}, {TK_CMP_EQ, TK_CMP_GT, TK_CMP_GTEQ, TK_CMP_LT, TK_CMP_LTEQ, TK_CMP_NEQ}, {TK_REG}, {TK_NUMBER, TK_LABEL}}
 var callRelSyntax = [][]uint8{{TK_CALL}, {TK_LABEL, TK_NUMBER}}
@@ -41,8 +45,10 @@ var retSyntax = [][]uint8{{TK_RET}}
 var syntaxRules = []Rule{
 	{Type: Equ, Syntax: constEquSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseConstEqu},
 	{Type: EvalConst, Syntax: evalConstSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseEvalConst},
+	{Type: EvalLabelRef, Syntax: evalLabelRefSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseEvalLabelRef},
 	{Type: Label, Syntax: labelSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseLabel},
 	{Type: DefineDBVar, Syntax: defineVarSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDbVar},
+	{Type: DefineDDVar, Syntax: defineVarDDSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDdVar},
 	{Type: RuleALURegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: parseAluRegReg},
 	{Type: LdRegImm, Syntax: ldRegImmSyntax, Opcode: GetOpcode(OP_LD_REG_IMM), ParseFunc: parseLdRegImm},
 	{Type: AluRegImm, Syntax: aluRegImmSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseAluRegImm},
@@ -379,6 +385,19 @@ func parseEvalConst(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	return tokens, nil
 }
 
+// Example: mystrref db @mystr
+func parseEvalLabelRef(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	labelT := tokens[tokenpos+1]
+	labelVal, ok := parser.Labels[labelT.Tk]
+	if !ok {
+		return tokens, fmt.Errorf("Label '%s' is not defined!", labelT.Tk)
+	}
+	//Remove second token and replace first by number
+	tokens[tokenpos] = Token{T: TK_NUMBER, Tk: strconv.Itoa(int(labelVal)), ValInt: int32(labelVal)}
+	tokens = append(tokens[:tokenpos+1], tokens[tokenpos+2:]...)
+	return tokens, nil
+}
+
 // Example: Mystr db 'Hello',0
 func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	labelT := tokens[tokenpos]
@@ -426,6 +445,53 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 					parser.CurAddress += 2
 					instr = Instruction{}
 				}
+			}
+		default:
+			return tokens, fmt.Errorf("Unexpected token: %s", numberT)
+		}
+	}
+	if instrByte == 0 {
+		parser.addInstruction(instr)
+		parser.CurAddress += 2
+	}
+	tokens = []Token{}
+	return tokens, nil
+}
+
+// Example: Mystrref dd @Mystr, 0xFFBBCCDD
+func parseDefineDdVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	labelT := tokens[tokenpos]
+	instr := Instruction{}
+	instrByte := 1
+
+	if err := addLabel(parser, labelT); err != nil {
+		return tokens, err
+	}
+
+	for i := tokenpos + 2; i < len(tokens); i++ {
+		numberT := tokens[i]
+		switch numberT.T {
+		case TK_COMMA:
+			continue
+		case TK_NUMBER:
+			// if numberT.ValInt < 0 || numberT.ValInt > 255 {
+			// 	return tokens, fmt.Errorf("Number out of range(0..255) for db: 0x%08X", uint32(numberT.ValInt))
+			// }
+			number := uint32(numberT.ValInt)
+			for range 3 {
+				if instrByte == 1 {
+					instr.Opcode = rule.Opcode
+					instr.Address = parser.CurAddress
+					instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
+					instrByte = 0
+				} else {
+					instr.Imm = instr.Imm | int16(number&0x000000FF)
+					instrByte = 1
+					parser.addInstruction(instr)
+					parser.CurAddress += 2
+					instr = Instruction{}
+				}
+				number >>= 8
 			}
 		default:
 			return tokens, fmt.Errorf("Unexpected token: %s", numberT)

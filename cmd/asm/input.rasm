@@ -8,6 +8,7 @@ UART_RX_RDY equ  0xFFFF000C
 
     myvar1 db 100, 200, 255
     mystr1 db 'Hihi',0
+    mystr1r dd @mystr1
 
 main:
     ld.0 r3, 10
@@ -15,7 +16,7 @@ main:
 label1:
     sub  r2, 1
     djnz r3, label1
-    ldi  r8, mystr1
+    ldi  r0, mystr1r
     call uart_send
 main_loop:
     jmp main_loop

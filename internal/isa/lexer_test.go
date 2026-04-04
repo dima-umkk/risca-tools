@@ -12,6 +12,11 @@ func TestLexer_Tokenize(t *testing.T) {
 		expected []Token
 	}{
 		{
+			name:     "define string reference",
+			input:    "MystrR db @Mystr",
+			expected: []Token{{T: TK_LABEL, Tk: "MYSTRR"}, {T: TK_DB, Tk: "DB"}, {T: TK_AT, Tk: "@"}, {T: TK_LABEL, Tk: "MYSTR"}},
+		},
+		{
 			name:     "define string",
 			input:    "Mystr db 'Hello',0",
 			expected: []Token{{T: TK_LABEL, Tk: "MYSTR"}, {T: TK_DB, Tk: "DB"}, {T: TK_STRING, Tk: "Hello", ValStr: "Hello"}, {T: TK_COMMA, Tk: ","}, {T: TK_NUMBER, Tk: "0", ValInt: 0}},
