@@ -38,7 +38,12 @@ uart_send_main:
 uart_send_loop:
 ;    ld.b   r4, [r8++]
     jmp  r4 == r3 uart_send_done
+    jmp  r5 != r2, r2
+    call r2 >= r0, r6
+    jmp  r3
+    call r0
 ;    ld.b  [r9], r11
     jmp  uart_send_loop
 uart_send_done:
    ret
+   ret r2 != r0

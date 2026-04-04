@@ -18,6 +18,9 @@ const (
 	JmpRel
 	JmpRelCond
 	CallRel
+	CallJmpReg
+	CallJmpCondReg
+	RetCond
 	Ret
 )
 
@@ -40,6 +43,9 @@ var defineVarDDSyntax = [][]uint8{{TK_LABEL}, {TK_DD}, {TK_NUMBER}}
 var jmpRelSyntax = [][]uint8{{TK_JMP}, {TK_NUMBER, TK_LABEL}}
 var jmpRelCondSyntax = [][]uint8{{TK_JMP}, {TK_REG}, {TK_CMP_EQ, TK_CMP_GT, TK_CMP_GTEQ, TK_CMP_LT, TK_CMP_LTEQ, TK_CMP_NEQ}, {TK_REG}, {TK_NUMBER, TK_LABEL}}
 var callRelSyntax = [][]uint8{{TK_CALL}, {TK_LABEL, TK_NUMBER}}
+var callJmpRegSyntax = [][]uint8{{TK_CALL, TK_JMP}, {TK_REG}}
+var callJmpCondRegSyntax = [][]uint8{{TK_CALL, TK_JMP}, {TK_REG}, {TK_CMP_EQ, TK_CMP_NEQ, TK_CMP_GTEQ}, {TK_REG}, {TK_COMMA}, {TK_REG}}
+var retCondSyntax = [][]uint8{{TK_RET}, {TK_REG}, {TK_CMP_EQ, TK_CMP_NEQ, TK_CMP_GTEQ}, {TK_REG}}
 var retSyntax = [][]uint8{{TK_RET}}
 
 var syntaxRules = []Rule{
@@ -54,7 +60,10 @@ var syntaxRules = []Rule{
 	{Type: AluRegImm, Syntax: aluRegImmSyntax, Opcode: GetOpcode(OP_ALU_REG_IMM), ParseFunc: parseAluRegImm},
 	{Type: JmpRel, Syntax: jmpRelSyntax, Opcode: GetOpcode(OP_JUMP_REL), ParseFunc: parseJmpRel},
 	{Type: JmpRelCond, Syntax: jmpRelCondSyntax, Opcode: GetOpcode(OP_JUMP_REL), ParseFunc: parseJmpRelCond},
+	{Type: CallJmpCondReg, Syntax: callJmpCondRegSyntax, Opcode: GetOpcode(OP_JUMP_CALL_RET_REG), ParseFunc: parseCallJmpCondReg},
 	{Type: CallRel, Syntax: callRelSyntax, Opcode: GetOpcode(OP_CALL_REL), ParseFunc: parseCallRel},
+	{Type: CallJmpReg, Syntax: callJmpRegSyntax, Opcode: GetOpcode(OP_JUMP_CALL_RET_REG), ParseFunc: parseCallJmpReg},
+	{Type: RetCond, Syntax: retCondSyntax, Opcode: GetOpcode(OP_JUMP_CALL_RET_REG), ParseFunc: parseRetCond},
 	{Type: Ret, Syntax: retSyntax, Opcode: GetOpcode(OP_JUMP_CALL_RET_REG), ParseFunc: parseRet},
 }
 
@@ -79,6 +88,7 @@ func parseRet(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token,
 	return tokens, nil
 }
 
+// Example: ADD r1, r10; LD r3, r13 ..
 func parseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	var rd, bankd, rs, banks uint8
 	var err error
@@ -149,6 +159,7 @@ func parseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	return tokens, nil
 }
 
+// Example: LD R1,0xff
 func parseLdRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	var rd, bankd, func2 uint8
 	var err error
@@ -338,6 +349,105 @@ func parseJmpRelCond(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([
 
 	//Remove parsed tokens from the list
 	tokens = append(tokens[:tokenpos], tokens[tokenpos+5:]...)
+	return tokens, nil
+}
+
+// Example: call r6; jmp r3
+func parseCallJmpReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	func2, rs, rx := uint8(0), uint8(0), uint8(0)
+	rd, bank, err := parseRegister(tokens[tokenpos+1].Tk)
+	if err != nil {
+		return tokens, err
+	}
+	if bank == 1 {
+		return tokens, fmt.Errorf("Only registers from 1 bank available (R0-R7) for JMP REG. Got %v", tokens[tokenpos+1])
+	}
+	ex := uint8(0) //JMP
+	if tokens[tokenpos].T == TK_CALL {
+		ex = 1
+	}
+	instr := Instruction{Opcode: rule.Opcode, Func2: func2, Rs: rs, Rx: rx, Rd: rd, Ex: ex, Address: parser.CurAddress}
+	parser.addInstruction(instr)
+	parser.CurAddress += 2
+
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+2:]...)
+	return tokens, nil
+}
+
+// Example: RET r0 == r1
+func parseRetCond(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	regsT := tokens[tokenpos+1]
+	condT := tokens[tokenpos+2]
+	regxT := tokens[tokenpos+3]
+	ex := uint8(2) //RET
+	rs, banks, err := parseRegister(regsT.Tk)
+	if err != nil {
+		return tokens, err
+	}
+	rx, bankx, err := parseRegister(regxT.Tk)
+	if err != nil {
+		return tokens, err
+	}
+	if banks == 1 || bankx == 1 {
+		return tokens, fmt.Errorf("Only registers from 1 bank available (R0-R7) for JMP/CALL REG COND REG , REG. Got %v, %v, %v", regsT, regxT)
+	}
+	func2 := uint8(0)
+	switch condT.T {
+	case TK_CMP_EQ:
+		func2 = 1
+	case TK_CMP_NEQ:
+		func2 = 2
+	case TK_CMP_GTEQ:
+		func2 = 3
+	}
+	instr := Instruction{Opcode: rule.Opcode, Func2: func2, Rs: rs, Rx: rx, Rd: 0, Ex: ex, Address: parser.CurAddress}
+	parser.addInstruction(instr)
+	parser.CurAddress += 2
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+4:]...)
+	return tokens, nil
+}
+
+// Example: call r1 == r2, r3; jmp r1 != r2, r3
+func parseCallJmpCondReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	regsT := tokens[tokenpos+1]
+	condT := tokens[tokenpos+2]
+	regxT := tokens[tokenpos+3]
+	regdT := tokens[tokenpos+5]
+	ex := uint8(0) //JMP
+	if tokens[tokenpos].T == TK_CALL {
+		ex = 1
+	}
+	rs, banks, err := parseRegister(regsT.Tk)
+	if err != nil {
+		return tokens, err
+	}
+	rx, bankx, err := parseRegister(regxT.Tk)
+	if err != nil {
+		return tokens, err
+	}
+	rd, bankd, err := parseRegister(regdT.Tk)
+	if err != nil {
+		return tokens, err
+	}
+	if banks == 1 || bankx == 1 || bankd == 1 {
+		return tokens, fmt.Errorf("Only registers from 1 bank available (R0-R7) for JMP/CALL REG COND REG , REG. Got %v, %v, %v", regsT, regxT, regdT)
+	}
+	func2 := uint8(0)
+	switch condT.T {
+	case TK_CMP_EQ:
+		func2 = 1
+	case TK_CMP_NEQ:
+		func2 = 2
+	case TK_CMP_GTEQ:
+		func2 = 3
+	}
+	instr := Instruction{Opcode: rule.Opcode, Func2: func2, Rs: rs, Rx: rx, Rd: rd, Ex: ex, Address: parser.CurAddress}
+	parser.addInstruction(instr)
+	parser.CurAddress += 2
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+6:]...)
 	return tokens, nil
 }
 

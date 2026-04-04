@@ -266,15 +266,32 @@ func (i Instruction) String() string {
 		address := uint32(int32(i.Address) + int32(offset<<1))
 		return fmt.Sprintf("CALL\t0x%04X(%d) -> %08X", uint16(offset), offset, address)
 	case OP_JUMP_CALL_RET_REG:
+		cond := ""
+		switch i.Func2 {
+		case 1:
+			cond = fmt.Sprintf("R%d == R%d", i.Rs, i.Rx)
+		case 2:
+			cond = fmt.Sprintf("R%d != R%d", i.Rs, i.Rx)
+		case 3:
+			cond = fmt.Sprintf("R%d >= R%d", i.Rs, i.Rx)
+		}
+		oper := ""
 		switch i.Ex {
+		case 0:
+			oper = "JMP"
+		case 1:
+			oper = "CALL"
 		case 2: //RET
 			if i.Func2 == 0 {
-				return fmt.Sprintf("RET")
+				return "RET"
 			} else { //RET func
-				//TODO:
+				return fmt.Sprintf("RET\t%s", cond)
 			}
-			//TODO:
 		}
+		if cond != "" {
+			cond += ", "
+		}
+		return fmt.Sprintf("%s\t%sR%d", oper, cond, i.Rd)
 		//TODO:
 	}
 	return ""
