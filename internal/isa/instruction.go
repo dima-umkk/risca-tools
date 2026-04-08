@@ -50,7 +50,7 @@ func (i Instruction) Pack() uint16 {
 	return code
 }
 
-func Parse(inst uint16) Instruction {
+func Unpack(inst uint16) Instruction {
 	i := Instruction{}
 	i.Opcode = GetOpcode(uint8(inst) & 0b0000_0111)
 	switch i.Opcode.Type {

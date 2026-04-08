@@ -31,7 +31,7 @@ func main() {
 		if err != nil {
 			break
 		}
-		instr := isa.Parse(instrBin)
+		instr := isa.Unpack(instrBin)
 		instr.Address = curAddr
 		fmt.Printf("0x%08X 0x%04X %s\n", curAddr, instrBin, instr)
 		curAddr += 2
