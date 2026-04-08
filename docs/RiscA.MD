@@ -11,14 +11,14 @@ General purpose registers 32 bit: R0-R15
 
 | Opcode (3 bits) | Type        | Format (16 bit)                                  | Description |
 | --------------- | ----------- | ------------------------------------------------ | ----------- |
-| 0               | [ALU REG REG](#alu-reg-reg) | ```notused(2)       func3(3)  Rs(4) Rd(4) opcode(3)``` |             |
-| 1               | [ALU Imm](#alu-imm)         | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` |        |
-| 2               | [REG Imm](#reg-imm)         | ```Imm(8)           func1(1)        Rd(4) opcode(3)``` |        |
-| 3               | [ST\LD](#stld)              | ```Imm(3) func22(1) func21(1) Rs(4) Rd(4) opcode(3)``` |       |
-| 4               | [BRANCH](#branch)           | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` |      |
+| 0               | [ALU REG REG](#alu-reg-reg) | ```notused(2)       func3(3)  Rs(4) Rd(4) opcode(3)``` | MOV,ADD,SUB,AND,OR,XOR,NOT,MUL|
+| 1               | [ALU Imm](#alu-imm)         | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` | SHR,SHL,ADD,SUB |
+| 2               | [REG Imm](#reg-imm)         | ```Imm(8)           func1(1)        Rd(4) opcode(3)``` | MOVI,MOVH |
+| 3               | [ST\LD](#stld)              | ```Imm(3) func22(1) func21(1) Rs(4) Rd(4) opcode(3)``` | LDB,LDW,STB,STW |
+| 4               | [BRANCH](#branch)           | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` | BEQZ,BNEZ,BGTZ,BLTZ |
 | 5               | [LDI](#ldi)                 | ```Imm(9)                           Rd(4) opcode(3)``` | Load indirect 32 bit constant |
-| 6               | [CALL\JMP\RET](#calljmpret) | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` |          |
-| 7               | [INT\RETI\STS](#intretists) | ```unused(7)        func2(2)        Rd(4) opcode(3)``` |          |
+| 6               | [CALL\JMP\RET](#calljmpret) | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` | CALL,JMP,RET |
+| 7               | [INT\RETI\STS](#intretists) | ```unused(7)        func2(2)        Rd(4) opcode(3)``` | INT,RETI,STS |
 
 
 
@@ -123,7 +123,7 @@ Imm(7) | func2(2) | Rd(4) | opcode(3)
 	0) CALL Imm(7), Rd; PC=PC+signed(Imm(7))<<2; Function aligned by 4 bytes; Rd=PC+2 return address; For default R14
 	1) CALL Rd		  ; PC=Rd. R14=PC+2
 	2) RET  Rd        ; PC=Rd. Also used as JMP Rd; For default used R14
-	3) JR signed(Imm(7)); PC=PC+signed(Imm(7))<<1; in instructions
+	3) JR   Imm(7)    ; PC=PC+signed(Imm(7))<<1; in instructions
 
 ### INT\RETI\STS:
 Opcode: 7

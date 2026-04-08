@@ -4,42 +4,37 @@ UART_TX_BUSY equ 0xFFFE0304
 UART_RX     equ  0xFFFF0008
 UART_RX_RDY equ  0xFFFF000C
 
-    jmp main
-
-    myvar1 db 100, 200, 255
-    mystr1 db 'Hihi',0
-    mystr1r dd @mystr1
-
 main:
     movi r3, 10
     ADD  r3, $FUNCNUMBER
 label1:
-    sub  r2, 1
+    sub  r3, 1
     bnez r3, label1
-    ldi  r0, mystr1r
+    ldi  r0, mystr1_ref
     call uart_send
 main_loop:
     jmp main_loop
+    myvar1 db 100, 200, 255
+    mystr1 db 'Hihi',0
+    mystr1_ref dd @mystr1
 
 ; Send string to UART
 ; in: r0 string pointer
 ; out: -
 uart_send:
-    jmp uart_send_main
+    ldi  r1, uarttx
+    ldi  r2, uartbusy
+uart_send_loop:
+    ldb  r3, [r0]
+    beqz r3, uart_send_done
+    stb  [r1], r3
+    add  r0, 1
+uart_wait:
+    ldb r3, [r2]
+    bnez r3, uart_wait
+    jmp  uart_send_loop
+uart_send_done:
+    ret
     ; constsants
     uarttx    db $UART_TX
     uartbusy  db $UART_TX_BUSY
-uart_send_main: 
-    ldi  r1, uarttx
-    ldi  r2, uartbusy
-    xor  r3, r3
-uart_send_loop:
-    ldb  r4, [r8]
-    add  r8, 1
-    call r6
-    jmp  r3
-    call r0
-    stb  [r9], r11
-    jmp  uart_send_loop
-uart_send_done:
-   ret
