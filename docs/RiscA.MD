@@ -16,7 +16,7 @@ General purpose registers 32 bit: R0-R15
 | 2               | [REG Imm](#reg-imm)         | ```Imm(8)           func1(1)        Rd(4) opcode(3)``` |        |
 | 3               | [ST\LD](#stld)              | ```Imm(3) func22(1) func21(1) Rs(4) Rd(4) opcode(3)``` |       |
 | 4               | [BRANCH](#branch)           | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` |      |
-| 5               | [LDI](#ldi)                 | ```Imm(9)                           Rd(4) opcode(3)``` | Load PC related 32 bit constant (4 byte word) |
+| 5               | [LDI](#ldi)                 | ```Imm(9)                           Rd(4) opcode(3)``` | Load indirect 32 bit constant |
 | 6               | [CALL\JMP\RET](#calljmpret) | ```Imm(7)           func2(2)        Rd(4) opcode(3)``` |          |
 | 7               | [INT\RETI\STS](#intretists) | ```unused(7)        func2(2)        Rd(4) opcode(3)``` |          |
 
