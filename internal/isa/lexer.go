@@ -62,50 +62,11 @@ func Tokenize(origInput string) ([]Token, error) { // input line in uppercase, e
 				tokens = append(tokens, token)
 				continue
 			}
-			token, pos, found = getCompareOperator(input, pos)
-			if found {
-				tokens = append(tokens, token)
-				continue
-			}
 
 			return nil, fmt.Errorf("Unexpeced symbol on pos %d: '%c'. %s>%s", pos, input[pos], input[:pos], input[pos:])
 		}
 	}
 	return tokens, nil
-}
-
-func getCompareOperator(input string, pos int) (Token, int, bool) {
-	switch input[pos] {
-	case '!':
-		pos++
-		if pos < len(input) && input[pos] == '=' {
-			pos++
-			return Token{T: TK_CMP_NEQ, Tk: "!="}, pos, true
-		}
-	case '=':
-		pos++
-		if pos < len(input) && input[pos] == '=' {
-			pos++
-			return Token{T: TK_CMP_EQ, Tk: "=="}, pos, true
-		}
-	case '<':
-		pos++
-		if pos < len(input) && input[pos] == '=' {
-			pos++
-			return Token{T: TK_CMP_LTEQ, Tk: "<="}, pos, true
-		} else {
-			return Token{T: TK_CMP_LT, Tk: "<"}, pos, true
-		}
-	case '>':
-		pos++
-		if pos < len(input) && input[pos] == '=' {
-			pos++
-			return Token{T: TK_CMP_GTEQ, Tk: ">="}, pos, true
-		} else {
-			return Token{T: TK_CMP_GT, Tk: ">"}, pos, true
-		}
-	}
-	return Token{}, pos, false
 }
 
 func getBucks(input string, pos int) (Token, int, bool) {

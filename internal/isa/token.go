@@ -19,16 +19,14 @@ func (token Token) String() string {
 
 const (
 	TK_LD = iota
-	TK_ST
+	TK_ST_BYTE
+	TK_ST_WORD
 	TK_LDI
 	TK_LD_BYTE
 	TK_LD_WORD
-	TK_LD_DWORD
-	TK_LD_0
-	TK_LD_1
+	TK_MOVI
+	TK_MOVH
 	TK_REG
-	TK_REG_SP
-	TK_REG_LR
 	TK_COMMA
 	TK_COLON
 	TK_AT
@@ -45,15 +43,14 @@ const (
 	TK_JMP
 	TK_CALL
 	TK_RET
-	TK_DJNZ
 
-	//compare tokens
-	TK_CMP_EQ
-	TK_CMP_NEQ
-	TK_CMP_GT
-	TK_CMP_GTEQ
-	TK_CMP_LT
-	TK_CMP_LTEQ
+	TK_INT
+	TK_RETI
+
+	TK_BEQZ
+	TK_BNEZ
+	TK_BGTZ
+	TK_BLTZ
 
 	TK_LABEL
 	TK_EQU
@@ -66,44 +63,41 @@ const (
 )
 
 var tokenTypeToString = map[uint8]string{
-	TK_LD:       "TK_LD",
-	TK_ST:       "TK_ST",
-	TK_LDI:      "TK_LDI",
-	TK_LD_BYTE:  "TK_LD_BYTE",
-	TK_LD_WORD:  "TK_LD_WORD",
-	TK_LD_DWORD: "TK_LD_DWORD",
-	TK_LD_0:     "TK_LD_0",
-	TK_LD_1:     "TK_LD_1",
-	TK_REG:      "TK_REG",
-	TK_REG_SP:   "TK_REG_SP",
-	TK_REG_LR:   "TK_REG_LR",
-	TK_COMMA:    "TK_COMMA",
-	TK_COLON:    "TK_COLON",
-	TK_AT:       "TK_AT",
-	TK_ALU:      "TK_ALU",
-	TK_NUMBER:   "TK_NUMBER",
-	TK_PLUS:     "TK_PLUS",
-	TK_MINUS:    "TK_MINUS",
-	TK_L_SQBR:   "TK_L_SQBR",
-	TK_R_SQBR:   "TK_R_SQBR",
-	TK_PUSH:     "TK_PUSH",
-	TK_POP:      "TK_POP",
-	TK_JMP:      "TK_JMP",
-	TK_CALL:     "TK_CALL",
-	TK_RET:      "TK_RET",
-	TK_DJNZ:     "TK_DJNZ",
-	TK_CMP_EQ:   "TK_CMP_EQ",
-	TK_CMP_NEQ:  "TK_CMP_NEQ",
-	TK_CMP_GT:   "TK_CMP_GT",
-	TK_CMP_GTEQ: "TK_CMP_GTEQ",
-	TK_CMP_LT:   "TK_CMP_LT",
-	TK_CMP_LTEQ: "TK_CMP_LTEQ",
-	TK_LABEL:    "TK_LABEL",
-	TK_EQU:      "TK_EQU",
-	TK_BUCKS:    "TK_BUCKS",
-	TK_DB:       "TK_DB",
-	TK_DD:       "TK_DD",
-	TK_STRING:   "TK_STRING",
+	TK_LD:      "TK_LD",
+	TK_ST_WORD: "TK_ST_WORD",
+	TK_ST_BYTE: "TK_ST_BYTE",
+	TK_LDI:     "TK_LDI",
+	TK_LD_BYTE: "TK_LD_BYTE",
+	TK_LD_WORD: "TK_LD_WORD",
+	TK_MOVI:    "TK_MOVI",
+	TK_MOVH:    "TK_MOVH",
+	TK_REG:     "TK_REG",
+	TK_COMMA:   "TK_COMMA",
+	TK_COLON:   "TK_COLON",
+	TK_AT:      "TK_AT",
+	TK_ALU:     "TK_ALU",
+	TK_NUMBER:  "TK_NUMBER",
+	TK_PLUS:    "TK_PLUS",
+	TK_MINUS:   "TK_MINUS",
+	TK_L_SQBR:  "TK_L_SQBR",
+	TK_R_SQBR:  "TK_R_SQBR",
+	TK_PUSH:    "TK_PUSH",
+	TK_POP:     "TK_POP",
+	TK_JMP:     "TK_JMP",
+	TK_CALL:    "TK_CALL",
+	TK_RET:     "TK_RET",
+	TK_BEQZ:    "TK_BEQZ",
+	TK_BNEZ:    "TK_BNEZ",
+	TK_BGTZ:    "TK_BGTZ",
+	TK_BLTZ:    "TK_BLTZ",
+	TK_INT:     "TK_INT",
+	TK_RETI:    "TK_RETI",
+	TK_LABEL:   "TK_LABEL",
+	TK_EQU:     "TK_EQU",
+	TK_BUCKS:   "TK_BUCKS",
+	TK_DB:      "TK_DB",
+	TK_DD:      "TK_DD",
+	TK_STRING:  "TK_STRING",
 }
 
 func GetTokenTypeString(tokenType uint8) string {
@@ -141,13 +135,13 @@ func GetRegisterNumber(reg string) (uint8, bool) {
 
 var mapWordToToken = map[string]uint8{
 	"LD":   TK_LD,
-	"ST":   TK_ST,
+	"STB":  TK_ST_BYTE,
+	"STW":  TK_ST_WORD,
 	"LDI":  TK_LDI,
-	"LD.B": TK_LD_BYTE,
-	"LD.W": TK_LD_WORD,
-	"LD.D": TK_LD_DWORD,
-	"LD.0": TK_LD_0,
-	"LD.1": TK_LD_1,
+	"LDB":  TK_LD_BYTE,
+	"LDW":  TK_LD_WORD,
+	"MOVI": TK_MOVH,
+	"MOVH": TK_MOVH,
 	"R0":   TK_REG,
 	"R1":   TK_REG,
 	"R2":   TK_REG,
@@ -164,8 +158,7 @@ var mapWordToToken = map[string]uint8{
 	"R13":  TK_REG,
 	"R14":  TK_REG,
 	"R15":  TK_REG,
-	"SP":   TK_REG_SP,
-	"LR":   TK_REG_LR,
+	"MOV":  TK_ALU,
 	"ADD":  TK_ALU,
 	"SUB":  TK_ALU,
 	"SHL":  TK_ALU,
@@ -175,13 +168,17 @@ var mapWordToToken = map[string]uint8{
 	"XOR":  TK_ALU,
 	"NOT":  TK_ALU,
 	"MUL":  TK_ALU,
-	"INT":  TK_ALU,
 	"PUSH": TK_PUSH,
 	"POP":  TK_POP,
 	"JMP":  TK_JMP,
 	"CALL": TK_CALL,
 	"RET":  TK_RET,
-	"DJNZ": TK_DJNZ,
+	"BEQZ": TK_BEQZ,
+	"BNEZ": TK_BNEZ,
+	"BGTZ": TK_BGTZ,
+	"BLTZ": TK_BLTZ,
+	"INT":  TK_INT,
+	"RETI": TK_RETI,
 	"EQU":  TK_EQU,
 	"DB":   TK_DB,
 	"DD":   TK_DD,

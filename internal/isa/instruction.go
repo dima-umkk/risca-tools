@@ -1,17 +1,15 @@
 package isa
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Instruction struct {
 	Opcode  Opcode
 	Rd      uint8
 	Rs      uint8
-	Rx      uint8
-	Func2   uint8
-	Func3   uint8
-	Func5   uint8
+	Func    uint8
 	Imm     int16
-	Ex      uint8
 	Address uint32
 	Label   string
 }
@@ -20,31 +18,40 @@ func (i Instruction) Pack() uint16 {
 	var code uint16 = uint16(i.Opcode.Opc)
 
 	//Pack instruction by opcode type
-	switch i.Opcode.Type {
-	case OP_TYPE_2_REG:
+	switch i.Opcode.Opc {
+	case OP_ALU_REG_REG:
 		code |= uint16(i.Rd) << 3
-		code |= uint16(i.Rs) << 13
-		code |= uint16(i.Ex) << 11
-		code |= uint16(i.Func5) << 6
-	case OP_TYPE_3_REG:
+		code |= uint16(i.Rs) << 7
+		code |= uint16(i.Func) << 11
+	case OP_ALU_IMM:
 		code |= uint16(i.Rd) << 3
-		code |= uint16(i.Rx) << 6
-		code |= uint16(i.Func2) << 9
-		code |= uint16(i.Ex) << 11
-		code |= uint16(i.Rs) << 13
-	case OP_TYPE_8_IMM_REG:
-		code |= uint16(i.Rd) << 3
-		code |= uint16(i.Func2) << 6
-		code |= uint16(i.Imm) << 8
-	case OP_TYPE_7_IMM_REG:
-		code |= uint16(i.Rd) << 3
-		code |= uint16(i.Func3) << 6
+		code |= uint16(i.Func) << 7
 		code |= uint16(i.Imm) << 9
-	case OP_TYPE_DB:
+	case OP_REG_IMM:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func) << 7
+		code |= uint16(i.Imm) << 8
+	case OP_MEM:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Rs) << 7
+		code |= uint16(i.Func) << 11
+		code |= uint16(i.Imm) << 13
+	case OP_BRANCH:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func) << 7
+		code |= uint16(i.Imm) << 9
+	case OP_LDI:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Imm) << 7
+	case OP_CALL_JUMP_RET:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func) << 7
+		code |= uint16(i.Imm) << 9
+	case OP_INT:
+		code |= uint16(i.Rd) << 3
+		code |= uint16(i.Func) << 7
+	case OP_DB:
 		code = uint16(i.Imm)
-	case OP_TYPE_13_IMM:
-		code |= uint16(i.Imm) << 3
-		//TODO:
 	}
 
 	return code
@@ -53,246 +60,236 @@ func (i Instruction) Pack() uint16 {
 func Unpack(inst uint16) Instruction {
 	i := Instruction{}
 	i.Opcode = GetOpcode(uint8(inst) & 0b0000_0111)
-	switch i.Opcode.Type {
-	case OP_TYPE_2_REG:
+	switch i.Opcode.Opc {
+	case OP_ALU_REG_REG:
 		i.Rd = getRd(inst)
 		i.Rs = getRs(inst)
-		i.Func5 = getFunc5(inst)
-		i.Ex = getEx(inst)
-	case OP_TYPE_3_REG:
+		i.Func = getFunc3(inst)
+	case OP_ALU_IMM:
 		i.Rd = getRd(inst)
-		i.Rx = getRx(inst)
-		i.Func2 = getFunc22(inst)
-		i.Ex = getEx(inst)
+		i.Func = getFunc2(inst)
+		i.Imm = getImm7(inst)
+	case OP_REG_IMM:
+		i.Rd = getRd(inst)
+		i.Func = getFunc1(inst)
+		i.Imm = getImm8(inst)
+	case OP_MEM:
+		i.Rd = getRd(inst)
 		i.Rs = getRs(inst)
-	case OP_TYPE_8_IMM_REG:
+		i.Func = getFunc22(inst)
+		i.Imm = getImm3(inst)
+	case OP_BRANCH:
 		i.Rd = getRd(inst)
-		i.Func2 = getFunc2(inst)
-		i.Imm = int16(getImm8(inst))
-	case OP_TYPE_7_IMM_REG:
+		i.Func = getFunc2(inst)
+		i.Imm = getImm7(inst)
+	case OP_LDI:
 		i.Rd = getRd(inst)
-		i.Func3 = getFunc3(inst)
-		i.Imm = int16(getImm7(inst))
-	case OP_TYPE_13_IMM:
-		i.Imm = getImm13(inst)
-		//TODO:
+		i.Imm = getImm9(inst)
+	case OP_CALL_JUMP_RET:
+		i.Rd = getRd(inst)
+		i.Func = getFunc2(inst)
+		i.Imm = getImm7(inst)
+	case OP_INT:
+		i.Rd = getRd(inst)
+		i.Func = getFunc2(inst)
 	}
 	return i
 }
 
-func (i Instruction) makeEx(bankd, banks uint8) Instruction {
-	i.Ex = (banks << 1) | bankd
-	return i
-}
-
 func getRd(inst uint16) uint8 {
-	return uint8(inst>>3) & 0b0000_0111
+	return uint8(inst>>3) & 0b0000_1111
 }
 
 func getRs(inst uint16) uint8 {
-	return uint8(inst>>13) & 0b0000_0111
+	return uint8(inst>>7) & 0b0000_1111
 }
 
-func getRx(inst uint16) uint8 {
-	return uint8(inst>>6) & 0b0000_0111
+func getFunc1(inst uint16) uint8 {
+	return uint8(inst>>7) & 0b0000_0001
 }
 
-func getFunc5(inst uint16) uint8 {
-	return uint8(inst>>6) & 0b0001_1111
+func getFunc2(inst uint16) uint8 {
+	return uint8(inst>>7) & 0b0000_0011
 }
 
 func getFunc3(inst uint16) uint8 {
-	return uint8(inst>>6) & 0b0000_0111
+	return uint8(inst>>11) & 0b0000_0111
 }
 
-//8 bit immediate operations
-func getFunc2(inst uint16) uint8 {
-	return uint8(inst>>6) & 0b0000_0011
-}
-
-//3 register operations
 func getFunc22(inst uint16) uint8 {
-	return uint8(inst>>9) & 0b0000_0011
-}
-
-func getEx(inst uint16) uint8 {
 	return uint8(inst>>11) & 0b0000_0011
 }
 
-func getImm8(inst uint16) int16 {
-	return int16(int8(inst >> 8))
+func getImm3(inst uint16) int16 {
+	return int16(int8(inst>>8) >> 5)
 }
 
 func getImm7(inst uint16) int16 {
 	return int16(int8(inst>>8) >> 1)
 }
 
-func getImm13(inst uint16) int16 {
-	return int16(inst) >> 3
+func getImm8(inst uint16) int16 {
+	return int16(int8(inst >> 8))
 }
 
-var mapFunc5ToAluRegReg = map[uint8]string{
-	0:  "LD",
-	1:  "ADD",
-	2:  "SUB",
-	3:  "SHL",
-	4:  "SHR",
-	5:  "AND",
-	6:  "OR",
-	7:  "XOR",
-	8:  "NOT",
-	9:  "MUL",
-	10: "LD",
-	11: "LD",
-	12: "LD",
-	13: "LD",
-	14: "INT",
+func getImm9(inst uint16) int16 {
+	return int16(inst) >> 7
 }
 
-var mapAluToFunc5 = map[string]uint8{
+var mapFuncToAluRegReg = map[uint8]string{
+	0: "MOV",
+	1: "ADD",
+	2: "SUB",
+	3: "AND",
+	4: "OR",
+	5: "XOR",
+	6: "NOT",
+	7: "MUL",
+}
+
+var mapAluToFuncRegReg = map[string]uint8{
+	"MOV": 0,
 	"ADD": 1,
 	"SUB": 2,
-	"SHL": 3,
-	"SHR": 4,
-	"AND": 5,
-	"OR":  6,
-	"XOR": 7,
-	"NOT": 8,
-	"MUL": 9,
+	"AND": 3,
+	"OR":  4,
+	"XOR": 5,
+	"NOT": 6,
+	"MUL": 7,
 }
 
-func getFunc5FromALU(alu string) (uint8, error) {
-	func5, exists := mapAluToFunc5[alu]
+var mapFuncToAluImm = map[uint8]string{
+	0: "SHL",
+	1: "SHR",
+	2: "ADD",
+	3: "SUB",
+}
+
+var mapAluImmToFunc = map[string]uint8{
+	"SHL": 0,
+	"SHR": 1,
+	"ADD": 2,
+	"SUB": 3,
+}
+
+var mapFuncToRegImm = map[uint8]string{
+	0: "MOVI",
+	1: "MOVH",
+}
+
+var mapRegImmToFunc = map[string]uint8{
+	"MOVI": 0,
+	"MOVH": 1,
+}
+
+var mapFuncToBranch = map[uint8]string{
+	0: "BEQZ",
+	1: "BNEZ",
+	2: "BGTZ",
+	3: "BLTZ",
+}
+
+var mapBranchToFunc = map[string]uint8{
+	"BEQZ": 0,
+	"BNEZ": 1,
+	"BGTZ": 2,
+	"BLTZ": 3,
+}
+
+func getFuncFromAlu(alu string) (uint8, error) {
+	ifunc, exists := mapAluToFuncRegReg[alu]
 	if !exists {
 		return 0, fmt.Errorf("invalid ALU name")
 	}
-	return func5, nil
+	return ifunc, nil
+}
+
+func getFuncFromRegImm(regimm string) (uint8, error) {
+	ifunc, exists := mapRegImmToFunc[regimm]
+	if !exists {
+		return 0, fmt.Errorf("invalid name for REG IMM")
+	}
+	return ifunc, nil
+}
+
+func getFuncFromAluImm(aluimm string) (uint8, error) {
+	ifunc, exists := mapAluImmToFunc[aluimm]
+	if !exists {
+		return 0, fmt.Errorf("Alu name for ALU IMM should be one of: SHL, SHR, ADD, SUB")
+	}
+	return ifunc, nil
+}
+
+func getFuncFromBranch(branch string) (uint8, error) {
+	ifunc, exists := mapBranchToFunc[branch]
+	if !exists {
+		return 0, fmt.Errorf("invalid BRANCH func name")
+	}
+	return ifunc, nil
 }
 
 func (i Instruction) String() string {
 	switch i.Opcode.Opc {
 	case OP_ALU_REG_REG:
-		if name, exists := mapFunc5ToAluRegReg[i.Func5]; exists {
-			rdBanked := i.Rd
-			if (i.Ex & 0x01) != 0 {
-				rdBanked += 7
-			}
-			rsBanked := i.Rs
-			if (i.Ex & 0x02) != 0 {
-				rsBanked += 7
-			}
-			rdStr := fmt.Sprintf("R%d", rdBanked)
-			rsStr := fmt.Sprintf("R%d", rsBanked)
-			switch i.Func5 {
-			case 10:
-				rsStr = "SP"
-			case 11:
-				rsStr = "LR"
-			case 12:
-				rdStr = "SP"
-			case 13:
-				rdStr = "LR"
-			}
-			return fmt.Sprintf("%s\t%s, %s", name, rdStr, rsStr)
+		if name, exists := mapFuncToAluRegReg[i.Func]; exists {
+			return fmt.Sprintf("%s\tR%d, R%d", name, i.Rd, i.Rs)
 		}
-	case OP_LD_REG_IMM:
-		rdBanked := i.Rd
-		if (i.Func2 & 0b0000_0010) != 0 {
-			rdBanked += 7
+	case OP_ALU_IMM:
+		if name, exists := mapFuncToAluImm[i.Func]; exists {
+			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
-		return fmt.Sprintf("LD.%d\tR%d, 0x%02X(%d)", i.Func2&0b0000_0001, rdBanked, uint8(i.Imm), i.Imm)
-	case OP_ALU_REG_IMM:
-		rdBanked := i.Rd
-		if (i.Func3 & 0b0000_0100) != 0 {
-			rdBanked += 7
+	case OP_REG_IMM:
+		if name, exists := mapFuncToRegImm[i.Func]; exists {
+			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
-		var operand string
-		funcOper := i.Func3 & 0b0000_0011
-		imm := i.Imm
-		switch funcOper {
+	case OP_MEM:
+		switch i.Func {
 		case 0:
-			operand = "ADD"
-			if i.Imm < 0 {
-				operand = "SUB"
-				imm = ^imm + 1
-			}
+			return fmt.Sprintf("LDB\tR%d, [R%d+0x%02X(%d)]", i.Rd, i.Rs, uint8(i.Imm), i.Imm)
 		case 1:
-			operand = "SHL"
-			if i.Imm < 0 {
-				operand = "SHR"
-				imm = ^imm + 1
-			}
+			return fmt.Sprintf("STB\t[R%d+0x%02X(%d)], R%d", i.Rs, uint8(i.Imm), i.Imm, i.Rd)
 		case 2:
-			operand = "LDI"
+			return fmt.Sprintf("LDW\tR%d, [R%d+0x%02X(%d)]", i.Rd, i.Rs, uint8(i.Imm), i.Imm)
 		case 3:
-			operand = "DJNZ"
+			return fmt.Sprintf("STW\t[R%d+0x%02X(%d)], R%d", i.Rs, uint8(i.Imm), i.Imm, i.Rd)
 		}
-		switch funcOper {
-		case 2: //LDI
-			address := uint32(int32(i.Address) + int32((-i.Imm)<<1))
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, address)
-		case 3: //DJNZ
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", operand, rdBanked, uint8(i.Imm), i.Imm, uint32(int32(i.Address)+int32(i.Imm<<1)))
-		default:
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", operand, rdBanked, uint8(imm), imm)
+	case OP_BRANCH:
+		if name, exists := mapFuncToBranch[i.Func]; exists {
+			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
-	case OP_JUMP_REL:
-		if i.Rd == 0 { //JMP PC+IMM
-			offset := int16(int8(i.Rs<<1)>>1)<<7 | int16(i.Ex)<<5 | int16(i.Func2)<<3 | int16(i.Rx)
-			address := uint32(int32(i.Address) + int32(offset<<1))
-			return fmt.Sprintf("JMP\t0x%04X(%d) -> %08X", uint16(offset), offset, address)
-		} else {
-			offset := int16(int8(i.Ex<<6))>>4 | int16(i.Func2)
-			address := uint32(int32(i.Address) + int32(offset<<1))
-			cond := ""
-			switch i.Rd {
-			case 1:
-				cond = "=="
-			case 2:
-				cond = "!="
-			case 3:
-				cond = ">"
-			case 4:
-				cond = ">="
-			case 5:
-				cond = "<"
-			case 6:
-				cond = "<="
-			}
-			return fmt.Sprintf("JMP\tR%d %s R%d 0x%04X(%d) -> %08X", i.Rs, cond, i.Rx, uint16(offset), offset, address)
-		}
-	case OP_CALL_REL:
+	case OP_LDI:
 		offset := i.Imm
 		address := uint32(int32(i.Address) + int32(offset<<1))
-		return fmt.Sprintf("CALL\t0x%04X(%d) -> %08X", uint16(offset), offset, address)
-	case OP_JUMP_CALL_RET_REG:
-		cond := ""
-		switch i.Func2 {
-		case 1:
-			cond = fmt.Sprintf("R%d == R%d", i.Rs, i.Rx)
-		case 2:
-			cond = fmt.Sprintf("R%d != R%d", i.Rs, i.Rx)
-		case 3:
-			cond = fmt.Sprintf("R%d >= R%d", i.Rs, i.Rx)
-		}
-		oper := ""
-		switch i.Ex {
+		return fmt.Sprintf("LDI\tR%d, [0x%02X(%d)] -> %08X", i.Rd, uint8(i.Imm), i.Imm, address)
+	case OP_CALL_JUMP_RET:
+		offset := i.Imm
+		instAddress := uint32(int32(i.Address) + int32(offset<<1))
+		callAddress := uint32(int32(i.Address) + int32(offset<<2))
+		switch i.Func {
 		case 0:
-			oper = "JMP"
+			return fmt.Sprintf("CALL\t0x%02X(%d), R%d -> %08X", uint8(i.Imm), i.Imm, i.Rd, callAddress)
 		case 1:
-			oper = "CALL"
-		case 2: //RET
-			if i.Func2 == 0 {
-				return "RET"
-			} else { //RET func
-				return fmt.Sprintf("RET\t%s", cond)
+			return fmt.Sprintf("CALL\tR%d", i.Rd)
+		case 2:
+			if i.Rd == 14 { // Standard link register for RET - possible ret meaning
+				return fmt.Sprintf("RET\tR%d", i.Rd)
+			} else { // Possible JMP meaning
+				return fmt.Sprintf("JMP\tR%d", i.Rd)
 			}
+		case 3:
+			return fmt.Sprintf("JMP\t0x%02X(%d) -> %08X", uint8(i.Imm), i.Imm, instAddress)
 		}
-		if cond != "" {
-			cond += ", "
+	case OP_INT:
+		switch i.Func {
+		case 0:
+			return fmt.Sprintf("INT\tR%d", i.Rd)
+		case 1:
+			return "RETI"
+		case 2:
+			return fmt.Sprintf("MOV\tR%d, STS", i.Rd)
+		case 3:
+			return fmt.Sprintf("MOV\tSTS, R%d", i.Rd)
 		}
-		return fmt.Sprintf("%s\t%sR%d", oper, cond, i.Rd)
-		//TODO:
 	}
 	return ""
 }
