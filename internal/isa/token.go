@@ -140,7 +140,7 @@ var mapWordToToken = map[string]uint8{
 	"LDI":  TK_LDI,
 	"LDB":  TK_LD_BYTE,
 	"LDW":  TK_LD_WORD,
-	"MOVI": TK_MOVH,
+	"MOVI": TK_MOVI,
 	"MOVH": TK_MOVH,
 	"R0":   TK_REG,
 	"R1":   TK_REG,

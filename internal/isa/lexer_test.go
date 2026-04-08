@@ -82,19 +82,19 @@ func TestLexer_Tokenize(t *testing.T) {
 			expected: []Token{{T: TK_JMP, Tk: "JMP"}, {T: TK_REG, Tk: "R4"}},
 		},
 		{
-			name:     "ld.b reg, [reg+imm]",
-			input:    "ld.b r10, [r12+5]",
-			expected: []Token{{T: TK_LD_BYTE, Tk: "LD.B"}, {T: TK_REG, Tk: "R10"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_PLUS, Tk: "+"}, {T: TK_NUMBER, Tk: "5", ValInt: 5}, {T: TK_R_SQBR, Tk: "]"}},
+			name:     "ldb reg, [reg+imm]",
+			input:    "ldb r10, [r12+5]",
+			expected: []Token{{T: TK_LD_BYTE, Tk: "LDB"}, {T: TK_REG, Tk: "R10"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_PLUS, Tk: "+"}, {T: TK_NUMBER, Tk: "5", ValInt: 5}, {T: TK_R_SQBR, Tk: "]"}},
 		},
 		{
-			name:     "ld.w reg, [reg++]",
-			input:    "ld.w r10, [r12++]",
-			expected: []Token{{T: TK_LD_WORD, Tk: "LD.W"}, {T: TK_REG, Tk: "R10"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_PLUS, Tk: "+"}, {T: TK_PLUS, Tk: "+"}, {T: TK_R_SQBR, Tk: "]"}},
+			name:     "ldw reg, [reg++]",
+			input:    "ldw r10, [r12++]",
+			expected: []Token{{T: TK_LD_WORD, Tk: "LDW"}, {T: TK_REG, Tk: "R10"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_PLUS, Tk: "+"}, {T: TK_PLUS, Tk: "+"}, {T: TK_R_SQBR, Tk: "]"}},
 		},
 		{
 			name:     "movi reg, imm",
 			input:    "movi r6, 10",
-			expected: []Token{{T: TK_MOVI, Tk: "LD.1"}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_NUMBER, Tk: "10", ValInt: 10}},
+			expected: []Token{{T: TK_MOVI, Tk: "MOVI"}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_NUMBER, Tk: "10", ValInt: 10}},
 		},
 		{
 			name:     "add reg, imm",
@@ -102,9 +102,9 @@ func TestLexer_Tokenize(t *testing.T) {
 			expected: []Token{{T: TK_ALU, Tk: "ADD"}, {T: TK_REG, Tk: "R6"}, {T: TK_COMMA, Tk: ","}, {T: TK_NUMBER, Tk: "1", ValInt: 1}},
 		},
 		{
-			name:     "ld.b reg, [reg]",
-			input:    "ld.b r11, [r12]",
-			expected: []Token{{T: TK_LD_BYTE, Tk: "LD.B"}, {T: TK_REG, Tk: "R11"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_R_SQBR, Tk: "]"}},
+			name:     "ldb reg, [reg]",
+			input:    "ldb r11, [r12]",
+			expected: []Token{{T: TK_LD_BYTE, Tk: "LDB"}, {T: TK_REG, Tk: "R11"}, {T: TK_COMMA, Tk: ","}, {T: TK_L_SQBR, Tk: "["}, {T: TK_REG, Tk: "R12"}, {T: TK_R_SQBR, Tk: "]"}},
 		},
 		{
 			name:     "push reg",

@@ -32,15 +32,14 @@ uart_send:
 uart_send_main: 
     ldi  r1, uarttx
     ldi  r2, uartbusy
-;   ld.d   r1,[r1]
-;   ld.d   r2,[r2]
     xor  r3, r3
 uart_send_loop:
-;    ld.b   r4, [r8++]
+    ldb  r4, [r8]
+    add  r8, 1
     call r6
     jmp  r3
     call r0
-;    ld.b  [r9], r11
+    stb  [r9], r11
     jmp  uart_send_loop
 uart_send_done:
    ret

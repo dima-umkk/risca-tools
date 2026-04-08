@@ -55,8 +55,8 @@ var aluImmSyntax = [][]uint8{{TK_ALU}, {TK_REG}, {TK_COMMA}, {TK_NUMBER, TK_LABE
 
 var memLdSyntax = [][]uint8{{TK_LD_BYTE, TK_LD_WORD}, {TK_REG}, {TK_COMMA}, {TK_L_SQBR}, {TK_REG}, {TK_R_SQBR}}
 var memLdImmSyntax = [][]uint8{{TK_LD_BYTE, TK_LD_WORD}, {TK_REG}, {TK_COMMA}, {TK_L_SQBR}, {TK_REG}, {TK_NUMBER}, {TK_R_SQBR}}
-var memStSyntax = [][]uint8{{TK_ST_BYTE, TK_ST_WORD}, {TK_REG}, {TK_COMMA}, {TK_L_SQBR}, {TK_REG}, {TK_R_SQBR}}
-var memStImmSyntax = [][]uint8{{TK_ST_BYTE, TK_ST_WORD}, {TK_REG}, {TK_COMMA}, {TK_L_SQBR}, {TK_REG}, {TK_NUMBER}, {TK_R_SQBR}}
+var memStSyntax = [][]uint8{{TK_ST_BYTE, TK_ST_WORD}, {TK_L_SQBR}, {TK_REG}, {TK_R_SQBR}, {TK_COMMA}, {TK_REG}}
+var memStImmSyntax = [][]uint8{{TK_ST_BYTE, TK_ST_WORD}, {TK_L_SQBR}, {TK_REG}, {TK_NUMBER}, {TK_R_SQBR}, {TK_COMMA}, {TK_REG}}
 
 var ldiSyntax = [][]uint8{{TK_LDI}, {TK_REG}, {TK_COMMA}, {TK_LABEL, TK_NUMBER}}
 

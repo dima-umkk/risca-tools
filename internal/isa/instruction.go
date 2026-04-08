@@ -243,15 +243,19 @@ func (i Instruction) String() string {
 			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
 	case OP_MEM:
+		immstr := ""
+		if i.Imm != 0 {
+			immstr = fmt.Sprintf("+0x%02X(%d)", uint8(i.Imm), i.Imm)
+		}
 		switch i.Func {
 		case 0:
-			return fmt.Sprintf("LDB\tR%d, [R%d+0x%02X(%d)]", i.Rd, i.Rs, uint8(i.Imm), i.Imm)
+			return fmt.Sprintf("LDB\tR%d, [R%d%s]", i.Rd, i.Rs, immstr)
 		case 1:
-			return fmt.Sprintf("STB\t[R%d+0x%02X(%d)], R%d", i.Rs, uint8(i.Imm), i.Imm, i.Rd)
+			return fmt.Sprintf("STB\t[R%d%s], R%d", i.Rs, immstr, i.Rd)
 		case 2:
-			return fmt.Sprintf("LDW\tR%d, [R%d+0x%02X(%d)]", i.Rd, i.Rs, uint8(i.Imm), i.Imm)
+			return fmt.Sprintf("LDW\tR%d, [R%d%s]", i.Rd, i.Rs, immstr)
 		case 3:
-			return fmt.Sprintf("STW\t[R%d+0x%02X(%d)], R%d", i.Rs, uint8(i.Imm), i.Imm, i.Rd)
+			return fmt.Sprintf("STW\t[R%d%s], R%d", i.Rs, immstr, i.Rd)
 		}
 	case OP_BRANCH:
 		if name, exists := mapFuncToBranch[i.Func]; exists {
