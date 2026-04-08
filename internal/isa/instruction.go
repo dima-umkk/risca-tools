@@ -245,7 +245,7 @@ func (i Instruction) String() string {
 	case OP_MEM:
 		immstr := ""
 		if i.Imm != 0 {
-			immstr = fmt.Sprintf("+0x%02X(%d)", uint8(i.Imm), i.Imm)
+			immstr = fmt.Sprintf(" + %d", i.Imm)
 		}
 		switch i.Func {
 		case 0:
@@ -258,8 +258,10 @@ func (i Instruction) String() string {
 			return fmt.Sprintf("STW\t[R%d%s], R%d", i.Rs, immstr, i.Rd)
 		}
 	case OP_BRANCH:
+		offset := i.Imm
+		address := uint32(int32(i.Address) + int32(offset<<1))
 		if name, exists := mapFuncToBranch[i.Func]; exists {
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
+			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", name, i.Rd, uint8(i.Imm), i.Imm, address)
 		}
 	case OP_LDI:
 		offset := i.Imm

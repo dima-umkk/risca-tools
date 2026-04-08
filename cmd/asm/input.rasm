@@ -11,9 +11,11 @@ label1:
     sub  r3, 1
     bnez r3, label1
     ldi  r0, mystr1_ref
+    ldb  r1, [r0+1]
     call uart_send
 main_loop:
     jmp main_loop
+    ; constsants
     myvar1 db 100, 200, 255
     mystr1 db 'Hihi',0
     mystr1_ref dd @mystr1
@@ -36,5 +38,5 @@ uart_wait:
 uart_send_done:
     ret
     ; constsants
-    uarttx    db $UART_TX
-    uartbusy  db $UART_TX_BUSY
+    uarttx    dd $UART_TX
+    uartbusy  dd $UART_TX_BUSY

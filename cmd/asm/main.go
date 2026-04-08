@@ -37,9 +37,17 @@ func main() {
 	parser := isa.NewParser()
 	scanner := bufio.NewScanner(ifile)
 	lineNumber := 1
+	type AddressRange struct {
+		from uint32
+		to   uint32
+	}
+	lineToAddress := make(map[int]AddressRange, 1024)
+	parsedInstr := len(parser.Instructions)
+	parsedLastAddress := parser.CurAddress
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Print(line, "\n")
+		//fmt.Print(line, "\n")
 
 		skip, err := parser.ParseLine(line)
 		if skip {
@@ -50,8 +58,13 @@ func main() {
 			fmt.Printf("Line: %d: %v\n", lineNumber, err)
 			return
 		}
+		//TODO: save this map for debugger
+		if parsedInstr != len(parser.Instructions) { // parsed new instructions, save line number for debugging
+			lineToAddress[lineNumber] = AddressRange{from: parsedLastAddress, to: parser.CurAddress}
+			parsedLastAddress = parser.CurAddress
+			parsedInstr = len(parser.Instructions)
+		}
 		lineNumber++
-
 	}
 
 	err = parser.ProcessLabels()
@@ -61,7 +74,7 @@ func main() {
 	}
 
 	for _, instr := range parser.Instructions {
-		fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
+		//fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
 		err = binary.Write(ofile, binary.LittleEndian, instr.Pack())
 		if err != nil {
 			panic(err)
@@ -72,5 +85,32 @@ func main() {
 		fmt.Printf("Error scanning file: %v\n", err)
 		return
 	}
+
+	//If list then print listing
+	//Reopen the file for reading and print the listing
+	lfile, err := os.Open(*ifileName)
+	if err != nil {
+		fmt.Printf("Error opening file: %v\n", err)
+		return
+	}
+	defer lfile.Close()
+
+	scanner = bufio.NewScanner(lfile)
+	lineNumber = 1
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Print(line, "\n")
+		if addr, ok := lineToAddress[lineNumber]; ok {
+			for a := addr.from; a < addr.to; a += 2 {
+				instr, ok := parser.Memory[a]
+				if ok {
+					fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
+				}
+			}
+		}
+		lineNumber++
+	}
+
+	fmt.Printf("Successfully compiled to %s\n", *ofileName)
 
 }
