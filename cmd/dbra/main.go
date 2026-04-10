@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dima-kgd/risca-tools/internal/emul"
 )
@@ -37,10 +39,24 @@ func main() {
 		curAddr += 1
 	}
 
-	for range 10 {
-		i := cpu.Peek()
-		fmt.Printf("0x%08X: %v\n", cpu.PC, i)
-		cpu.Step()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(">")
+	text, _ := reader.ReadString('\n')
+	for text != "q" {
+		switch strings.TrimSpace(text) {
+		case "s":
+			i := cpu.Peek()
+			fmt.Printf("0x%08X: %v\n", cpu.PC, i)
+			cpu.Step()
+		case "r":
+			for i, r := range cpu.Registers {
+				fmt.Printf("R%d 0x%08X %d\n", i, r, int32(r))
+			}
+		default:
+			fmt.Print("Unknown command\n")
+		}
+		fmt.Print(">")
+		text, _ = reader.ReadString('\n')
 	}
 
 }

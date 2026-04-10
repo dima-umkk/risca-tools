@@ -235,16 +235,16 @@ func (i Instruction) String() string {
 			return "NOP"
 		} else {
 			if name, exists := mapFuncToAluRegReg[i.Func]; exists {
-				return fmt.Sprintf("%s\tR%d, R%d", name, i.Rd, i.Rs)
+				return fmt.Sprintf("%s R%d, R%d", name, i.Rd, i.Rs)
 			}
 		}
 	case OP_ALU_IMM:
 		if name, exists := mapFuncToAluImm[i.Func]; exists {
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
+			return fmt.Sprintf("%s R%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
 	case OP_REG_IMM:
 		if name, exists := mapFuncToRegImm[i.Func]; exists {
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
+			return fmt.Sprintf("%s R%d, 0x%02X(%d)", name, i.Rd, uint8(i.Imm), i.Imm)
 		}
 	case OP_MEM:
 		immstr := ""
@@ -253,52 +253,52 @@ func (i Instruction) String() string {
 		}
 		switch i.Func {
 		case 0:
-			return fmt.Sprintf("LDB\tR%d, [R%d%s]", i.Rd, i.Rs, immstr)
+			return fmt.Sprintf("LDB R%d, [R%d%s]", i.Rd, i.Rs, immstr)
 		case 1:
-			return fmt.Sprintf("STB\t[R%d%s], R%d", i.Rs, immstr, i.Rd)
+			return fmt.Sprintf("STB [R%d%s], R%d", i.Rs, immstr, i.Rd)
 		case 2:
-			return fmt.Sprintf("LDW\tR%d, [R%d%s]", i.Rd, i.Rs, immstr)
+			return fmt.Sprintf("LDW R%d, [R%d%s]", i.Rd, i.Rs, immstr)
 		case 3:
-			return fmt.Sprintf("STW\t[R%d%s], R%d", i.Rs, immstr, i.Rd)
+			return fmt.Sprintf("STW [R%d%s], R%d", i.Rs, immstr, i.Rd)
 		}
 	case OP_BRANCH:
 		offset := i.Imm
 		address := uint32(int32(i.Address) + int32(offset<<1))
 		if name, exists := mapFuncToBranch[i.Func]; exists {
-			return fmt.Sprintf("%s\tR%d, 0x%02X(%d) -> %08X", name, i.Rd, uint8(i.Imm), i.Imm, address)
+			return fmt.Sprintf("%s R%d, 0x%02X(%d) -> %08X", name, i.Rd, uint8(i.Imm), i.Imm, address)
 		}
 	case OP_LDI:
 		offset := i.Imm
 		address := uint32(int32(i.Address) + int32(offset<<1))
-		return fmt.Sprintf("LDI\tR%d, [0x%02X(%d)] -> %08X", i.Rd, uint8(i.Imm), i.Imm, address)
+		return fmt.Sprintf("LDI R%d, [0x%02X(%d)] -> %08X", i.Rd, uint8(i.Imm), i.Imm, address)
 	case OP_CALL_JUMP_RET:
 		offset := i.Imm
 		instAddress := uint32(int32(i.Address) + int32(offset<<1))
 		callAddress := uint32(int32(i.Address) + int32(offset<<2))
 		switch i.Func {
 		case 0:
-			return fmt.Sprintf("CALL\t0x%02X(%d), R%d -> %08X", uint8(i.Imm), i.Imm, i.Rd, callAddress)
+			return fmt.Sprintf("CALL 0x%02X(%d), R%d -> %08X", uint8(i.Imm), i.Imm, i.Rd, callAddress)
 		case 1:
-			return fmt.Sprintf("CALL\tR%d", i.Rd)
+			return fmt.Sprintf("CALL R%d", i.Rd)
 		case 2:
 			if i.Rd == 14 { // Standard link register for RET - possible ret meaning
-				return fmt.Sprintf("RET\tR%d", i.Rd)
+				return fmt.Sprintf("RET R%d", i.Rd)
 			} else { // Possible JMP meaning
-				return fmt.Sprintf("JMP\tR%d", i.Rd)
+				return fmt.Sprintf("JMP R%d", i.Rd)
 			}
 		case 3:
-			return fmt.Sprintf("JMP\t0x%02X(%d) -> %08X", uint8(i.Imm), i.Imm, instAddress)
+			return fmt.Sprintf("JMP 0x%02X(%d) -> %08X", uint8(i.Imm), i.Imm, instAddress)
 		}
 	case OP_INT:
 		switch i.Func {
 		case 0:
-			return fmt.Sprintf("INT\tR%d", i.Rd)
+			return fmt.Sprintf("INT R%d", i.Rd)
 		case 1:
 			return "RETI"
 		case 2:
-			return fmt.Sprintf("MOV\tR%d, STS", i.Rd)
+			return fmt.Sprintf("MOV R%d, STS", i.Rd)
 		case 3:
-			return fmt.Sprintf("MOV\tSTS, R%d", i.Rd)
+			return fmt.Sprintf("MOV STS, R%d", i.Rd)
 		}
 	}
 	return ""

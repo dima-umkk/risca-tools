@@ -25,7 +25,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}\\cmd\\dbra"
+            "program": "${workspaceFolder}\\cmd\\dbra",
+            "console": "integratedTerminal"
         }
     ]
 }
