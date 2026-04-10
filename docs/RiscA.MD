@@ -109,7 +109,7 @@ Opcode: 5
 Imm(9) | Rd(4) | opcode(3)
 ```
 
-	LDI Rd, [PC-Signed(Imm(9))<<1]; Imm in instructions (-512...511 instructions)
+	LDI Rd, [PC+Signed(Imm(9))<<1]; Imm in instructions (-512...511 instructions)
 
 ### CALL\JMP\RET:
 Opcode: 6
