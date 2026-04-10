@@ -1,8 +1,10 @@
-package isa
+package asm_test
 
 import (
 	"reflect"
 	"testing"
+
+	. "github.com/dima-kgd/risca-tools/internal/asm"
 )
 
 func TestLexer_Tokenize(t *testing.T) {

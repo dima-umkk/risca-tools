@@ -1,12 +1,14 @@
-package isa
+package asm
 
 import (
 	"fmt"
+
+	"github.com/dima-kgd/risca-tools/internal/isa"
 )
 
 type Parser struct {
-	Instructions []Instruction
-	Memory       map[uint32]Instruction
+	Instructions []isa.Instruction
+	Memory       map[uint32]isa.Instruction
 	Labels       map[string]uint32
 	Constants    map[string]int32
 	CurAddress   uint32
@@ -14,8 +16,8 @@ type Parser struct {
 
 func NewParser() *Parser {
 	return &Parser{
-		Instructions: make([]Instruction, 0, 1024),
-		Memory:       make(map[uint32]Instruction),
+		Instructions: make([]isa.Instruction, 0, 1024),
+		Memory:       make(map[uint32]isa.Instruction),
 		Labels:       make(map[string]uint32),
 		Constants:    make(map[string]int32),
 		CurAddress:   0,
@@ -59,7 +61,7 @@ func tokenIn(token Token, tokens []uint8) bool {
 	return false
 }
 
-func (parser *Parser) addInstruction(instruction Instruction) error {
+func (parser *Parser) addInstruction(instruction isa.Instruction) error {
 	if _, ok := parser.Memory[instruction.Address]; ok {
 		return fmt.Errorf("Duplicate instruction at address: %d. Instructinon: %s", instruction.Address, instruction)
 	}
@@ -100,15 +102,15 @@ func (parser *Parser) ProcessLabels() error {
 			offsetCall := (int32(addr) - int32(instr.Address)) >> 2 //offset in words (4 bytes)
 			parser.Instructions[i].Imm = int16(offset)
 			switch instr.Opcode.Opc {
-			case OP_BRANCH:
+			case isa.OP_BRANCH:
 				if offset < -64 || offset > 63 {
 					return fmt.Errorf("Label too large for instruction! %s, %s", instr.Label, instr)
 				}
-			case OP_LDI:
+			case isa.OP_LDI:
 				if offset < -512 || offset > 511 {
 					return fmt.Errorf("Label too large for instruction! %s, %s", instr.Label, instr)
 				}
-			case OP_CALL_JUMP_RET:
+			case isa.OP_CALL_JUMP_RET:
 				if instr.Func == 0 { // CALL Imm(7), Rd
 					if addr&0b0000_0011 != 0 {
 						return fmt.Errorf("CALL address must be aligned to 4 bytes! %s(0x%08X), %s", instr.Label, addr, instr)

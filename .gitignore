@@ -3,3 +3,4 @@ cmd/asm/input.asm
 cmd/asm/input.lst
 cmd/asm/input.bin
 cmd/dasm/input.bin
+cmd/dbra/input.bin

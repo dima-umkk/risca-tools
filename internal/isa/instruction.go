@@ -196,7 +196,7 @@ var mapBranchToFunc = map[string]uint8{
 	"BLTZ": 3,
 }
 
-func getFuncFromAlu(alu string) (uint8, error) {
+func GetFuncFromAlu(alu string) (uint8, error) {
 	ifunc, exists := mapAluToFuncRegReg[alu]
 	if !exists {
 		return 0, fmt.Errorf("invalid ALU name")
@@ -204,7 +204,7 @@ func getFuncFromAlu(alu string) (uint8, error) {
 	return ifunc, nil
 }
 
-func getFuncFromRegImm(regimm string) (uint8, error) {
+func GetFuncFromRegImm(regimm string) (uint8, error) {
 	ifunc, exists := mapRegImmToFunc[regimm]
 	if !exists {
 		return 0, fmt.Errorf("invalid name for REG IMM")
@@ -212,7 +212,7 @@ func getFuncFromRegImm(regimm string) (uint8, error) {
 	return ifunc, nil
 }
 
-func getFuncFromAluImm(aluimm string) (uint8, error) {
+func GetFuncFromAluImm(aluimm string) (uint8, error) {
 	ifunc, exists := mapAluImmToFunc[aluimm]
 	if !exists {
 		return 0, fmt.Errorf("Alu name for ALU IMM should be one of: SHL, SHR, ADD, SUB")
@@ -220,7 +220,7 @@ func getFuncFromAluImm(aluimm string) (uint8, error) {
 	return ifunc, nil
 }
 
-func getFuncFromBranch(branch string) (uint8, error) {
+func GetFuncFromBranch(branch string) (uint8, error) {
 	ifunc, exists := mapBranchToFunc[branch]
 	if !exists {
 		return 0, fmt.Errorf("invalid BRANCH func name")

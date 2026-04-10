@@ -19,6 +19,13 @@
             "mode": "auto",
             "program": "${workspaceFolder}\\cmd\\dasm"
         }
-
+        ,
+        {
+            "name": "Debugger",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}\\cmd\\dbra"
+        }
     ]
 }

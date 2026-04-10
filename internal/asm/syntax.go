@@ -1,8 +1,10 @@
-package isa
+package asm
 
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/dima-kgd/risca-tools/internal/isa"
 )
 
 const (
@@ -38,7 +40,7 @@ const (
 type Rule struct {
 	Type      uint8
 	Syntax    [][]uint8
-	Opcode    Opcode
+	Opcode    isa.Opcode
 	ParseFunc func(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error)
 }
 
@@ -76,36 +78,36 @@ var branchSyntax = [][]uint8{{TK_BEQZ, TK_BNEZ, TK_BGTZ, TK_BLTZ}, {TK_REG}, {TK
 
 var syntaxRules = []Rule{
 	// Preprocessor
-	{Type: equ, Syntax: constEquSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseConstEqu},
-	{Type: evalConst, Syntax: evalConstSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseEvalConst},
-	{Type: evalLabelRef, Syntax: evalLabelRefSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseEvalLabelRef},
-	{Type: label, Syntax: labelSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseLabel},
-	{Type: defineDBVar, Syntax: defineVarSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDbVar},
-	{Type: defineDDVar, Syntax: defineVarDDSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDdVar},
-	{Type: evalPlusMinusNumber, Syntax: evalPlusMinusNumberSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parsePlusMinusNumber},
-	{Type: align4, Syntax: align4Syntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseAlign4Syntax},
+	{Type: equ, Syntax: constEquSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseConstEqu},
+	{Type: evalConst, Syntax: evalConstSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseEvalConst},
+	{Type: evalLabelRef, Syntax: evalLabelRefSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseEvalLabelRef},
+	{Type: label, Syntax: labelSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseLabel},
+	{Type: defineDBVar, Syntax: defineVarSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseDefineDbVar},
+	{Type: defineDDVar, Syntax: defineVarDDSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseDefineDdVar},
+	{Type: evalPlusMinusNumber, Syntax: evalPlusMinusNumberSyntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parsePlusMinusNumber},
+	{Type: align4, Syntax: align4Syntax, Opcode: isa.GetOpcode(isa.OP_DB), ParseFunc: parseAlign4Syntax},
 
 	// Instructions
-	{Type: aluRegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: parseAluRegReg},
-	{Type: regImm, Syntax: regImmSyntax, Opcode: GetOpcode(OP_REG_IMM), ParseFunc: parseRegImm},
-	{Type: aluImm, Syntax: aluImmSyntax, Opcode: GetOpcode(OP_ALU_IMM), ParseFunc: parseAluImm},
+	{Type: aluRegReg, Syntax: aluRegRegSyntax, Opcode: isa.GetOpcode(isa.OP_ALU_REG_REG), ParseFunc: parseAluRegReg},
+	{Type: regImm, Syntax: regImmSyntax, Opcode: isa.GetOpcode(isa.OP_REG_IMM), ParseFunc: parseRegImm},
+	{Type: aluImm, Syntax: aluImmSyntax, Opcode: isa.GetOpcode(isa.OP_ALU_IMM), ParseFunc: parseAluImm},
 	//Mem
-	{Type: memLd, Syntax: memLdSyntax, Opcode: GetOpcode(OP_MEM), ParseFunc: parseMemAll},
-	{Type: memLdImm, Syntax: memLdImmSyntax, Opcode: GetOpcode(OP_MEM), ParseFunc: parseMemAll},
-	{Type: memSt, Syntax: memStSyntax, Opcode: GetOpcode(OP_MEM), ParseFunc: parseMemAll},
-	{Type: memStImm, Syntax: memStImmSyntax, Opcode: GetOpcode(OP_MEM), ParseFunc: parseMemAll},
+	{Type: memLd, Syntax: memLdSyntax, Opcode: isa.GetOpcode(isa.OP_MEM), ParseFunc: parseMemAll},
+	{Type: memLdImm, Syntax: memLdImmSyntax, Opcode: isa.GetOpcode(isa.OP_MEM), ParseFunc: parseMemAll},
+	{Type: memSt, Syntax: memStSyntax, Opcode: isa.GetOpcode(isa.OP_MEM), ParseFunc: parseMemAll},
+	{Type: memStImm, Syntax: memStImmSyntax, Opcode: isa.GetOpcode(isa.OP_MEM), ParseFunc: parseMemAll},
 	//LDI
-	{Type: ldi, Syntax: ldiSyntax, Opcode: GetOpcode(OP_LDI), ParseFunc: parseLdi},
+	{Type: ldi, Syntax: ldiSyntax, Opcode: isa.GetOpcode(isa.OP_LDI), ParseFunc: parseLdi},
 	//CALL/RET/JMP
-	{Type: callRel, Syntax: callRelSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: callRelRd, Syntax: callRelRdSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: callRd, Syntax: callRdSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: ret, Syntax: retSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: retRd, Syntax: retRdSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: jmpRel, Syntax: jmpRelSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
-	{Type: jmpRd, Syntax: jmpRdSyntax, Opcode: GetOpcode(OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: callRel, Syntax: callRelSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: callRelRd, Syntax: callRelRdSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: callRd, Syntax: callRdSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: ret, Syntax: retSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: retRd, Syntax: retRdSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: jmpRel, Syntax: jmpRelSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
+	{Type: jmpRd, Syntax: jmpRdSyntax, Opcode: isa.GetOpcode(isa.OP_CALL_JUMP_RET), ParseFunc: parseCallJmpRetAll},
 	//BRANCH
-	{Type: branch, Syntax: branchSyntax, Opcode: GetOpcode(OP_BRANCH), ParseFunc: parseBranch},
+	{Type: branch, Syntax: branchSyntax, Opcode: isa.GetOpcode(isa.OP_BRANCH), ParseFunc: parseBranch},
 }
 
 func parseRegister(tokenrd string) (uint8, error) {
@@ -118,7 +120,7 @@ func parseRegister(tokenrd string) (uint8, error) {
 
 func parseAlign4Syntax(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	if parser.CurAddress&0b0000_0011 != 0 {
-		instr := Instruction{Opcode: GetOpcode(OP_ALU_REG_REG), Address: parser.CurAddress}
+		instr := isa.Instruction{Opcode: isa.GetOpcode(isa.OP_ALU_REG_REG), Address: parser.CurAddress}
 		parser.addInstruction(instr)
 		parser.CurAddress += 2
 	}
@@ -135,7 +137,7 @@ func parseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	aluT := tokens[tokenpos]
 	regDT := tokens[tokenpos+1]
 	regST := tokens[tokenpos+3]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	rd, err = parseRegister(regDT.Tk)
 	if err != nil {
@@ -150,7 +152,7 @@ func parseAluRegReg(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]
 	instr.Rd = rd
 	instr.Rs = rs
 	instr.Address = parser.CurAddress
-	instr.Func, err = getFuncFromAlu(aluT.Tk)
+	instr.Func, err = isa.GetFuncFromAlu(aluT.Tk)
 	if err != nil {
 		return tokens, err
 	}
@@ -169,7 +171,7 @@ func parseRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	ldT := tokens[tokenpos]
 	regDT := tokens[tokenpos+1]
 	immT := tokens[tokenpos+3]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	rd, err = parseRegister(regDT.Tk)
 	if err != nil {
@@ -179,7 +181,7 @@ func parseRegImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	instr.Rd = rd
 	instr.Imm = int16(immT.ValInt)
 	instr.Address = parser.CurAddress
-	instr.Func, err = getFuncFromRegImm(ldT.Tk)
+	instr.Func, err = isa.GetFuncFromRegImm(ldT.Tk)
 	if err != nil {
 		return tokens, err
 	}
@@ -198,7 +200,7 @@ func parseAluImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	aluT := tokens[tokenpos]
 	regDT := tokens[tokenpos+1]
 	immT := tokens[tokenpos+3]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	rd, err = parseRegister(regDT.Tk)
 	if err != nil {
@@ -208,7 +210,7 @@ func parseAluImm(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	instr.Rd = rd
 	instr.Imm = int16(immT.ValInt)
 	instr.Address = parser.CurAddress
-	instr.Func, err = getFuncFromAluImm(aluT.Tk)
+	instr.Func, err = isa.GetFuncFromAluImm(aluT.Tk)
 	if err != nil {
 		return tokens, err
 	}
@@ -272,7 +274,7 @@ func parseMemAll(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 		return tokens, err
 	}
 
-	instr := Instruction{}
+	instr := isa.Instruction{}
 	instr.Rd = rd
 	instr.Rs = rs
 	instr.Imm = imm
@@ -293,7 +295,7 @@ func parseLdi(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token,
 
 	regDT := tokens[tokenpos+1]
 	immT := tokens[tokenpos+3]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	if immT.T == TK_LABEL {
 		instr.Label = immT.Tk
@@ -320,7 +322,7 @@ func parseCallJmpRetAll(parser *Parser, rule Rule, tokens []Token, tokenpos int)
 	var err error
 	var regDT, immT Token
 
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	switch rule.Type {
 	case callRel: // CALL Imm(7)
@@ -388,7 +390,7 @@ func parseBranch(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	brT := tokens[tokenpos]
 	regDT := tokens[tokenpos+1]
 	immT := tokens[tokenpos+3]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 
 	rd, err = parseRegister(regDT.Tk)
 	if err != nil {
@@ -402,7 +404,7 @@ func parseBranch(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Tok
 	instr.Opcode = rule.Opcode
 	instr.Rd = rd
 	instr.Address = parser.CurAddress
-	instr.Func, err = getFuncFromBranch(brT.Tk)
+	instr.Func, err = isa.GetFuncFromBranch(brT.Tk)
 	if err != nil {
 		return tokens, err
 	}
@@ -487,7 +489,7 @@ func parsePlusMinusNumber(parser *Parser, rule Rule, tokens []Token, tokenpos in
 // Example: Mystr db 'Hello',0
 func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	labelT := tokens[tokenpos]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 	instrByte := 1
 
 	if err := addLabel(parser, labelT); err != nil {
@@ -513,7 +515,7 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 				instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
 				parser.addInstruction(instr)
 				parser.CurAddress += 2
-				instr = Instruction{}
+				instr = isa.Instruction{}
 				instrByte = 1
 			}
 		case TK_STRING:
@@ -527,7 +529,7 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 					instr.Imm = instr.Imm | int16(char)<<8
 					parser.addInstruction(instr)
 					parser.CurAddress += 2
-					instr = Instruction{}
+					instr = isa.Instruction{}
 					instrByte = 1
 				}
 			}
@@ -546,7 +548,7 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 // Example: Mystrref dd @Mystr, 0xFFBBCCDD
 func parseDefineDdVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
 	labelT := tokens[tokenpos]
-	instr := Instruction{}
+	instr := isa.Instruction{}
 	instrByte := 1
 
 	if err := addLabel(parser, labelT); err != nil {
@@ -574,7 +576,7 @@ func parseDefineDdVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 					instrByte = 1
 					parser.addInstruction(instr)
 					parser.CurAddress += 2
-					instr = Instruction{}
+					instr = isa.Instruction{}
 				}
 				number >>= 8
 			}

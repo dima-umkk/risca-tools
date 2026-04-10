@@ -1,4 +1,4 @@
-package isa
+package asm
 
 import "fmt"
 

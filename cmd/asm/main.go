@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dima-kgd/risca-tools/internal/isa"
+	"github.com/dima-kgd/risca-tools/internal/asm"
 )
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 	}
 	defer ofile.Close()
 
-	parser := isa.NewParser()
+	parser := asm.NewParser()
 	scanner := bufio.NewScanner(ifile)
 	lineNumber := 1
 	type AddressRange struct {
