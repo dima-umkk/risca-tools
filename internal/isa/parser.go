@@ -96,9 +96,9 @@ func (parser *Parser) ProcessLabels() error {
 			if !ok {
 				return fmt.Errorf("Label not defined: %s", instr.Label)
 			}
-			offset := (int32(addr) - int32(instr.Address)) >> 1 //offset in instructions (2 bytes per instruction)
+			offset := (int32(addr) - int32(instr.Address)) >> 1     //offset in instructions (2 bytes per instruction)
+			offsetCall := (int32(addr) - int32(instr.Address)) >> 2 //offset in words (4 bytes)
 			parser.Instructions[i].Imm = int16(offset)
-			parser.Memory[instr.Address] = parser.Instructions[i]
 			switch instr.Opcode.Opc {
 			case OP_BRANCH:
 				if offset < -64 || offset > 63 {
@@ -109,12 +109,19 @@ func (parser *Parser) ProcessLabels() error {
 					return fmt.Errorf("Label too large for instruction! %s, %s", instr.Label, instr)
 				}
 			case OP_CALL_JUMP_RET:
+				if instr.Func == 0 { // CALL Imm(7), Rd
+					if addr&0b0000_0011 != 0 {
+						return fmt.Errorf("CALL address must be aligned to 4 bytes! %s(0x%08X), %s", instr.Label, addr, instr)
+					}
+					parser.Instructions[i].Imm = int16(offsetCall)
+				}
 				if offset < -64 || offset > 63 {
 					return fmt.Errorf("Label too large for instruction! %s, %s", instr.Label, instr)
 				}
 			default:
 				return fmt.Errorf("Label not applicable for instruction! %s, %s", instr.Label, instr)
 			}
+			parser.Memory[instr.Address] = parser.Instructions[i]
 		}
 	}
 	return nil

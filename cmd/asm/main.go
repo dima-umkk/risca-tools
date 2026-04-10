@@ -74,7 +74,7 @@ func main() {
 	}
 
 	for _, instr := range parser.Instructions {
-		//fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
+		fmt.Printf("0x%08X 0x%04X %s\n", instr.Address, instr.Pack(), instr)
 		err = binary.Write(ofile, binary.LittleEndian, instr.Pack())
 		if err != nil {
 			panic(err)

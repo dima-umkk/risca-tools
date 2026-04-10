@@ -32,6 +32,7 @@ const (
 	defineDBVar
 	defineDDVar
 	evalPlusMinusNumber
+	align4
 )
 
 type Rule struct {
@@ -49,6 +50,7 @@ var evalLabelRefSyntax = [][]uint8{{TK_AT}, {TK_LABEL}}
 var defineVarSyntax = [][]uint8{{TK_LABEL}, {TK_DB}, {TK_NUMBER, TK_STRING}}
 var defineVarDDSyntax = [][]uint8{{TK_LABEL}, {TK_DD}, {TK_NUMBER}}
 var evalPlusMinusNumberSyntax = [][]uint8{{TK_PLUS, TK_MINUS}, {TK_NUMBER}}
+var align4Syntax = [][]uint8{{TK_ALIGN4}}
 
 // Instructions
 var aluRegRegSyntax = [][]uint8{{TK_ALU}, {TK_REG}, {TK_COMMA}, {TK_REG}}
@@ -81,6 +83,7 @@ var syntaxRules = []Rule{
 	{Type: defineDBVar, Syntax: defineVarSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDbVar},
 	{Type: defineDDVar, Syntax: defineVarDDSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseDefineDdVar},
 	{Type: evalPlusMinusNumber, Syntax: evalPlusMinusNumberSyntax, Opcode: GetOpcode(OP_DB), ParseFunc: parsePlusMinusNumber},
+	{Type: align4, Syntax: align4Syntax, Opcode: GetOpcode(OP_DB), ParseFunc: parseAlign4Syntax},
 
 	// Instructions
 	{Type: aluRegReg, Syntax: aluRegRegSyntax, Opcode: GetOpcode(OP_ALU_REG_REG), ParseFunc: parseAluRegReg},
@@ -111,6 +114,17 @@ func parseRegister(tokenrd string) (uint8, error) {
 		return 0, fmt.Errorf("Invalid register: %s", tokenrd)
 	}
 	return rd, nil
+}
+
+func parseAlign4Syntax(parser *Parser, rule Rule, tokens []Token, tokenpos int) ([]Token, error) {
+	if parser.CurAddress&0b0000_0011 != 0 {
+		instr := Instruction{Opcode: GetOpcode(OP_ALU_REG_REG), Address: parser.CurAddress}
+		parser.addInstruction(instr)
+		parser.CurAddress += 2
+	}
+	//Remove parsed tokens from the list
+	tokens = append(tokens[:tokenpos], tokens[tokenpos+1:]...)
+	return tokens, nil
 }
 
 // Example: ADD r1, r10; MOV r3, r13 ..
@@ -496,25 +510,25 @@ func parseDefineDbVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 				instr.Imm = instr.Imm | int16(number&0x000000FF)
 				instrByte = 0
 			} else {
-				instr.Imm = instr.Imm | int16(number&0x000000FF)
-				instrByte = 1
+				instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
 				parser.addInstruction(instr)
 				parser.CurAddress += 2
 				instr = Instruction{}
+				instrByte = 1
 			}
 		case TK_STRING:
 			for _, char := range []byte(numberT.ValStr) {
 				if instrByte == 1 {
 					instr.Opcode = rule.Opcode
 					instr.Address = parser.CurAddress
-					instr.Imm = instr.Imm | int16(char)<<8
+					instr.Imm = instr.Imm | int16(char)
 					instrByte = 0
 				} else {
-					instr.Imm = instr.Imm | int16(char)
-					instrByte = 1
+					instr.Imm = instr.Imm | int16(char)<<8
 					parser.addInstruction(instr)
 					parser.CurAddress += 2
 					instr = Instruction{}
+					instrByte = 1
 				}
 			}
 		default:
@@ -549,14 +563,14 @@ func parseDefineDdVar(parser *Parser, rule Rule, tokens []Token, tokenpos int) (
 			// 	return tokens, fmt.Errorf("Number out of range(0..255) for db: 0x%08X", uint32(numberT.ValInt))
 			// }
 			number := uint32(numberT.ValInt)
-			for range 3 {
+			for range 4 {
 				if instrByte == 1 {
 					instr.Opcode = rule.Opcode
 					instr.Address = parser.CurAddress
-					instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
+					instr.Imm = instr.Imm | int16(number&0x000000FF)
 					instrByte = 0
 				} else {
-					instr.Imm = instr.Imm | int16(number&0x000000FF)
+					instr.Imm = instr.Imm | int16(number&0x000000FF)<<8
 					instrByte = 1
 					parser.addInstruction(instr)
 					parser.CurAddress += 2

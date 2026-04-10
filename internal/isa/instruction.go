@@ -231,8 +231,12 @@ func getFuncFromBranch(branch string) (uint8, error) {
 func (i Instruction) String() string {
 	switch i.Opcode.Opc {
 	case OP_ALU_REG_REG:
-		if name, exists := mapFuncToAluRegReg[i.Func]; exists {
-			return fmt.Sprintf("%s\tR%d, R%d", name, i.Rd, i.Rs)
+		if i.Func == 0 && i.Rd == 0 && i.Rs == 0 { // NOP
+			return "NOP"
+		} else {
+			if name, exists := mapFuncToAluRegReg[i.Func]; exists {
+				return fmt.Sprintf("%s\tR%d, R%d", name, i.Rd, i.Rs)
+			}
 		}
 	case OP_ALU_IMM:
 		if name, exists := mapFuncToAluImm[i.Func]; exists {

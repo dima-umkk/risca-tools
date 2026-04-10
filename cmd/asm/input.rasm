@@ -17,12 +17,13 @@ main_loop:
     jmp main_loop
     ; constsants
     myvar1 db 100, 200, 255
-    mystr1 db 'Hihi',0
+    mystr1 db 'Hihi123',0
     mystr1_ref dd @mystr1
 
 ; Send string to UART
 ; in: r0 string pointer
 ; out: -
+.align4
 uart_send:
     ldi  r1, uarttx
     ldi  r2, uartbusy
