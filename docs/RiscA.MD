@@ -136,10 +136,19 @@ unused(7) | func2(2) | Rd(4) | opcode(3)
 
 	0) INT Rd; interrupt number Rd
 	1) RETI; return from interrupt
-	2) MOV Rd, STS; Get status register
-	3) MOV STS, Rd: Set status register
+	2) MOV Rd, EPC; Get EPC
+	3) MOV EPC, Rd: Set EPC register
 
+	EPC register: PC of next instruction to execute after interrupt handler is finished
+	On interrupt EPC = PC + 2
     STS register: bit0=IE (Enable Interrupts), bit1=Priv (User/Kernel)	
+
+	Interrupt vectors:
+	0x00000000 - Reset
+	0x00000002 - Timer
+	0x00000004 - Syscall (INT Rd)
+	0x00000006 - ...
+
 
 ## ABI:
 
@@ -157,3 +166,5 @@ unused(7) | func2(2) | Rd(4) | opcode(3)
 		POP:
 			LDW Rd, [R15]
 		    ADD R15, 4
+
+	Syscall: INT R0 - system function, R1-R5 arguments. Result: R0

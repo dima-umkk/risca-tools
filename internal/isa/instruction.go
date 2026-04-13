@@ -296,9 +296,9 @@ func (i Instruction) String() string {
 		case 1:
 			return "RETI"
 		case 2:
-			return fmt.Sprintf("MOV R%d, STS", i.Rd)
+			return fmt.Sprintf("MOV R%d, EPC", i.Rd)
 		case 3:
-			return fmt.Sprintf("MOV STS, R%d", i.Rd)
+			return fmt.Sprintf("MOV EPC, R%d", i.Rd)
 		}
 	}
 	return ""

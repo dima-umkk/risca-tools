@@ -16,15 +16,15 @@ type CPU struct {
 	Bus       BusDevice
 }
 
-func (c *CPU) Peek() isa.Instruction {
-	instrBin := c.Bus.Read16(c.PC)
+func (c *CPU) Peek(offset int32) isa.Instruction {
+	instrBin := c.Bus.Read16(c.PC + uint32(offset<<1))
 	i := isa.Unpack(instrBin)
-	i.Address = c.PC
+	i.Address = c.PC + uint32(offset<<1)
 	return i
 }
 
 func (c *CPU) Step() {
-	i := c.Peek()
+	i := c.Peek(0)
 	rd := i.Rd
 	rs := i.Rs
 
